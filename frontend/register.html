@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - Hostel Management System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="static/css/style.css">
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <h1>Hostel Management System</h1>
+            <p>Room Allocation and Maintenance Tracker</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="card">
+            <h2>Create Account</h2>
+            
+            <form id="registerForm">
+                <div class="form-group">
+                    <label for="username">Username *</label>
+                    <input 
+                        type="text" 
+                        id="username" 
+                        name="username" 
+                        class="form-control" 
+                        placeholder="Choose a username"
+                        required
+                        minlength="3"
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password *</label>
+                    <div class="password-container">
+                        <input 
+                            type="password" 
+                            id="password" 
+                            name="password" 
+                            class="form-control" 
+                            placeholder="Create a password"
+                            required
+                            minlength="6"
+                        >
+                        <button type="button" class="password-toggle" onclick="togglePassword('password')">
+                            <svg class="eye-icon eye-open" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                <circle cx="12" cy="12" r="3"/>
+                            </svg>
+                            <svg class="eye-icon eye-closed" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
+                                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                                <line x1="1" y1="1" x2="23" y2="23"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input 
+                        type="email" 
+                        id="email" 
+                        name="email" 
+                        class="form-control" 
+                        placeholder="your.email@example.com"
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="phone">Phone Number</label>
+                    <input 
+                        type="tel" 
+                        id="phone" 
+                        name="phone" 
+                        class="form-control" 
+                        placeholder="+91 9876543210"
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="role">Role *</label>
+                    <select id="role" name="role" class="form-control" required>
+                        <option value="">Select your role</option>
+                        <option value="Student">Student</option>
+                        <option value="Warden">Warden</option>
+                        <option value="SuperAdmin">Super Admin</option>
+                    </select>
+                </div>
+
+                <div class="form-group" id="adminCodeGroup" style="display: none;">
+                    <label for="adminCode">Admin Authorization Code *</label>
+                    <div class="password-container">
+                        <input 
+                            type="password" 
+                            id="adminCode" 
+                            name="adminCode" 
+                            class="form-control" 
+                            placeholder="Enter admin authorization code"
+                        >
+                        <button type="button" class="password-toggle" onclick="togglePassword('adminCode')">
+                            <svg class="eye-icon eye-open" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                <circle cx="12" cy="12" r="3"/>
+                            </svg>
+                            <svg class="eye-icon eye-closed" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
+                                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                                <line x1="1" y1="1" x2="23" y2="23"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="alert alert-info" style="margin-top: 0.5rem; padding: 0.75rem; font-size: 0.85rem;">
+                        <strong>ℹ️ Admin Role Security:</strong> A special authorization code is required to register as Warden or Super Admin. Contact your system administrator for the code.
+                    </div>
+                </div>
+
+                <button type="submit" id="submitBtn" class="btn btn-primary">
+                    Create Account
+                </button>
+            </form>
+
+            <div class="text-center" style="margin-top: 1.5rem;">
+                <p>Already have an account? <a href="login.html">Login here</a></p>
+            </div>
+        </div>
+
+        <!-- Information Card -->
+        <div class="card" style="margin-top: 1rem; max-width: 500px;">
+            <h3 style="margin-bottom: 1rem; color: #2980b9;">Role Information</h3>
+            <div class="role-info">
+                <p><strong>Student:</strong> Can view room assignments, submit maintenance requests, and manage personal profile.</p>
+                
+                <p><strong>Warden:</strong> Can manage hostel rooms, approve maintenance requests, and oversee student allocations.</p>
+                
+                <p><strong>Super Admin:</strong> Full system access including user management, hostel setup, and system configuration.</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="static/js/auth.js"></script>
+</body>
+</html>
