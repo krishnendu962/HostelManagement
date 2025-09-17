@@ -300,8 +300,30 @@ const Auth = {
                 
                 UIHelper.showAlert('Login successful! Redirecting...', 'success');
                 
+                // Role-based redirect
+                const userRole = response.data.user.role;
+                console.log('User role from server:', userRole);
+                let redirectUrl = 'dashboard.html'; // default fallback
+                
+                switch (userRole) {
+                    case 'Student':
+                        redirectUrl = 'student-dashboard.html';
+                        break;
+                    case 'Warden':
+                        redirectUrl = 'warden-dashboard.html';
+                        break;
+                    case 'SuperAdmin':
+                    case 'Admin':
+                        redirectUrl = 'admin-dashboard.html';
+                        break;
+                    default:
+                        redirectUrl = 'dashboard.html';
+                }
+                
+                console.log('Redirecting to:', redirectUrl);
+                
                 setTimeout(() => {
-                    window.location.href = 'dashboard.html';
+                    window.location.href = redirectUrl;
                 }, 1500);
             }
         } catch (error) {

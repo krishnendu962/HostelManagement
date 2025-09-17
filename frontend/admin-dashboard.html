@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Admin Dashboard - Hostel Management System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="static/css/style.css">
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1 style="margin: 0; font-size: 2.5rem;">Super Admin Dashboard</h1>
+                    <p style="margin: 0.5rem 0 0 0;">System Administration & Management</p>
+                </div>
+                <div>
+                    <button id="logoutBtn" class="btn btn-secondary" style="width: auto; padding: 12px 24px;">
+                        Logout
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- User Welcome Card -->
+        <div class="card">
+            <div id="userInfo">
+                <!-- User info will be populated by JavaScript -->
+            </div>
+        </div>
+
+        <!-- System Stats -->
+        <div class="stats-grid">
+            <div class="stat-item">
+                <h4 id="totalUsers">0</h4>
+                <p>Total Users</p>
+            </div>
+            <div class="stat-item">
+                <h4 id="totalHostels">0</h4>
+                <p>Total Hostels</p>
+            </div>
+            <div class="stat-item">
+                <h4 id="systemAlerts">0</h4>
+                <p>System Alerts</p>
+            </div>
+            <div class="stat-item">
+                <h4 id="activeWardens">0</h4>
+                <p>Active Wardens</p>
+            </div>
+        </div>
+
+        <!-- Dashboard Content -->
+        <div class="dashboard">
+            <!-- User Management Card -->
+            <div class="dashboard-card">
+                <h3>👥 User Management</h3>
+                <p>Manage all system users and permissions</p>
+                <div id="userSummary">
+                    <!-- User summary will be populated here -->
+                </div>
+                <button class="btn btn-primary" style="margin-top: 1rem;" onclick="manageUsers()">
+                    Manage Users
+                </button>
+                <button class="btn btn-secondary" style="margin-top: 0.5rem;" onclick="createUser()">
+                    Create User
+                </button>
+            </div>
+
+            <!-- Hostel Management Card -->
+            <div class="dashboard-card">
+                <h3>🏢 Hostel Management</h3>
+                <p>Configure hostels, rooms, and facilities</p>
+                <div id="hostelSummary">
+                    <!-- Hostel summary will be populated here -->
+                </div>
+                <button class="btn btn-primary" style="margin-top: 1rem;" onclick="manageHostels()">
+                    Manage Hostels
+                </button>
+                <button class="btn btn-secondary" style="margin-top: 0.5rem;" onclick="addHostel()">
+                    Add Hostel
+                </button>
+            </div>
+
+            <!-- System Analytics -->
+            <div class="dashboard-card">
+                <h3>📊 System Analytics</h3>
+                <p>View comprehensive system statistics and trends</p>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem;">
+                    <button class="btn btn-primary" onclick="viewAnalytics()">View Analytics</button>
+                    <button class="btn btn-secondary" onclick="generateReports()">Generate Reports</button>
+                    <button class="btn btn-secondary" onclick="exportData()">Export Data</button>
+                    <button class="btn btn-secondary" onclick="systemLogs()">System Logs</button>
+                </div>
+            </div>
+
+            <!-- System Configuration -->
+            <div class="dashboard-card">
+                <h3>⚙️ System Configuration</h3>
+                <p>Configure system settings and preferences</p>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem;">
+                    <button class="btn btn-primary" onclick="systemSettings()">System Settings</button>
+                    <button class="btn btn-secondary" onclick="emailConfig()">Email Configuration</button>
+                    <button class="btn btn-secondary" onclick="backupSettings()">Backup Settings</button>
+                    <button class="btn btn-secondary" onclick="securitySettings()">Security Settings</button>
+                </div>
+            </div>
+
+            <!-- Financial Management -->
+            <div class="dashboard-card">
+                <h3>💰 Financial Management</h3>
+                <p>Monitor payments, fees, and financial reports</p>
+                <div id="financialSummary">
+                    <!-- Financial summary will be populated here -->
+                </div>
+                <button class="btn btn-primary" style="margin-top: 1rem;" onclick="financialDashboard()">
+                    Financial Dashboard
+                </button>
+                <button class="btn btn-secondary" style="margin-top: 0.5rem;" onclick="feeManagement()">
+                    Fee Management
+                </button>
+            </div>
+
+            <!-- Maintenance Overview -->
+            <div class="dashboard-card">
+                <h3>🔧 Maintenance Overview</h3>
+                <p>System-wide maintenance monitoring</p>
+                <div id="maintenanceOverview">
+                    <!-- Maintenance overview will be populated here -->
+                </div>
+                <button class="btn btn-primary" style="margin-top: 1rem;" onclick="maintenanceReports()">
+                    View Reports
+                </button>
+                <button class="btn btn-secondary" style="margin-top: 0.5rem;" onclick="scheduleSystemMaintenance()">
+                    Schedule Maintenance
+                </button>
+            </div>
+
+            <!-- Security & Audit -->
+            <div class="dashboard-card">
+                <h3>🛡️ Security & Audit</h3>
+                <p>Monitor system security and audit trails</p>
+                <div id="securitySummary">
+                    <!-- Security summary will be populated here -->
+                </div>
+                <button class="btn btn-primary" style="margin-top: 1rem;" onclick="securityAudit()">
+                    Security Audit
+                </button>
+                <button class="btn btn-secondary" style="margin-top: 0.5rem;" onclick="accessLogs()">
+                    Access Logs
+                </button>
+            </div>
+
+            <!-- System Health -->
+            <div class="dashboard-card">
+                <h3>💚 System Health</h3>
+                <div id="systemHealth">
+                    <!-- System health will be populated here -->
+                </div>
+                <button class="btn btn-primary" style="margin-top: 1rem;" onclick="healthCheck()">
+                    Full Health Check
+                </button>
+            </div>
+
+            <!-- Recent Admin Activity -->
+            <div class="dashboard-card">
+                <h3>📋 Recent Admin Activity</h3>
+                <div id="adminActivity">
+                    <!-- Admin activity will be populated here -->
+                </div>
+            </div>
+
+            <!-- System Notifications -->
+            <div class="dashboard-card">
+                <h3>🔔 System Notifications</h3>
+                <div id="systemNotifications">
+                    <!-- System notifications will be populated here -->
+                </div>
+                <button class="btn btn-primary" style="margin-top: 1rem;" onclick="manageNotifications()">
+                    Manage Notifications
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="static/js/auth.js"></script>
+    <script src="static/js/admin-dashboard.js"></script>
+</body>
+</html>

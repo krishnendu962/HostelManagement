@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Dashboard - Hostel Management System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="static/css/style.css">
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1 style="margin: 0; font-size: 2.5rem;">Student Dashboard</h1>
+                    <p style="margin: 0.5rem 0 0 0;">Welcome to your hostel management portal</p>
+                </div>
+                <div>
+                    <button id="logoutBtn" class="btn btn-secondary" style="width: auto; padding: 12px 24px;">
+                        Logout
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- User Welcome Card -->
+        <div class="card">
+            <div id="userInfo">
+                <!-- User info will be populated by JavaScript -->
+            </div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="stats-grid">
+            <div class="stat-item">
+                <h4 id="roomNumber">---</h4>
+                <p>Room Number</p>
+            </div>
+            <div class="stat-item">
+                <h4 id="hostelName">---</h4>
+                <p>Hostel</p>
+            </div>
+            <div class="stat-item">
+                <h4 id="pendingRequests">0</h4>
+                <p>Pending Requests</p>
+            </div>
+            <div class="stat-item">
+                <h4 id="completedRequests">0</h4>
+                <p>Completed Requests</p>
+            </div>
+        </div>
+
+        <!-- Dashboard Content -->
+        <div class="dashboard">
+            <!-- Room Information Card -->
+            <div class="dashboard-card">
+                <h3>🏠 My Room Information</h3>
+                <div id="roomDetails">
+                    <p><strong>Room Number:</strong> <span id="detailRoomNumber">Not Assigned</span></p>
+                    <p><strong>Hostel:</strong> <span id="detailHostelName">Not Assigned</span></p>
+                    <p><strong>Room Type:</strong> <span id="roomType">---</span></p>
+                    <p><strong>Occupancy:</strong> <span id="occupancy">---</span></p>
+                    <p><strong>Floor:</strong> <span id="floor">---</span></p>
+                </div>
+                <button class="btn btn-primary" style="margin-top: 1rem;" onclick="viewRoomDetails()">
+                    View Full Details
+                </button>
+            </div>
+
+            <!-- Maintenance Requests Card -->
+            <div class="dashboard-card">
+                <h3>🔧 Maintenance Requests</h3>
+                <p>Submit and track your maintenance requests</p>
+                <div id="recentRequests">
+                    <!-- Recent requests will be populated here -->
+                </div>
+                <button class="btn btn-primary" style="margin-top: 1rem;" onclick="newMaintenanceRequest()">
+                    New Request
+                </button>
+                <button class="btn btn-secondary" style="margin-top: 0.5rem;" onclick="viewAllRequests()">
+                    View All Requests
+                </button>
+            </div>
+
+            <!-- Notifications Card -->
+            <div class="dashboard-card">
+                <h3>🔔 Notifications</h3>
+                <div id="notifications">
+                    <!-- Notifications will be populated here -->
+                </div>
+                <button class="btn btn-secondary" style="margin-top: 1rem;" onclick="viewAllNotifications()">
+                    View All Notifications
+                </button>
+            </div>
+
+            <!-- Profile Management Card -->
+            <div class="dashboard-card">
+                <h3>👤 Profile Management</h3>
+                <p>Update your personal information and settings</p>
+                <button class="btn btn-primary" style="margin-top: 1rem;" onclick="editProfile()">
+                    Edit Profile
+                </button>
+                <button class="btn btn-secondary" style="margin-top: 0.5rem;" onclick="changePassword()">
+                    Change Password
+                </button>
+            </div>
+
+            <!-- Quick Actions Card -->
+            <div class="dashboard-card">
+                <h3>⚡ Quick Actions</h3>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    <button class="btn btn-primary" onclick="reportIssue()">Report Issue</button>
+                    <button class="btn btn-secondary" onclick="viewHostelRules()">Hostel Rules</button>
+                    <button class="btn btn-secondary" onclick="contactWarden()">Contact Warden</button>
+                    <button class="btn btn-secondary" onclick="viewFacilities()">View Facilities</button>
+                </div>
+            </div>
+
+            <!-- Recent Activity Card -->
+            <div class="dashboard-card">
+                <h3>📋 Recent Activity</h3>
+                <div id="recentActivity">
+                    <!-- Recent activity will be populated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="static/js/auth.js"></script>
+    <script src="static/js/student-dashboard.js"></script>
+</body>
+</html>
