@@ -1,5 +1,85 @@
 // Student Dashboard JavaScript
 
+// Ensure API calls work when page is opened via file:// by prefixing localhost
+const API_ORIGIN = (typeof window !== 'undefined' && window.location && window.location.protocol === 'file:')
+    ? 'http://localhost:3000'
+    : '';
+const apiUrl = (path) => `${API_ORIGIN}${path}`;
+
+// HostelAPI object to handle API calls
+const HostelAPI = {
+    async getAllotmentStatus() {
+        try {
+            const response = await fetch(apiUrl('/api/allotment/status'), {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${TokenManager.getToken()}`
+                }
+            });
+            
+            if (response.ok) {
+                return await response.json();
+            } else {
+                throw new Error(`API Error: ${response.status}`);
+            }
+        } catch (error) {
+            console.error('Error fetching allotment status:', error);
+            throw error;
+        }
+    },
+
+    async changePassword(currentPassword, newPassword) {
+        try {
+            const response = await fetch(apiUrl('/api/auth/change-password'), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${TokenManager.getToken()}`
+                },
+                body: JSON.stringify({
+                    currentPassword,
+                    newPassword
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok) {
+                return { success: true, message: result.message };
+            } else {
+                return { success: false, message: result.message || 'Password change failed' };
+            }
+        } catch (error) {
+            console.error('Error changing password:', error);
+            return { success: false, message: 'Network error occurred' };
+        }
+    },
+
+    async submitAllotmentApplication(applicationData) {
+        try {
+            const response = await fetch(apiUrl('/api/allotment/register'), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${TokenManager.getToken()}`
+                },
+                body: JSON.stringify(applicationData)
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok) {
+                return { success: true, message: result.message, applicationId: result.applicationId };
+            } else {
+                return { success: false, message: result.message || 'Application submission failed' };
+            }
+        } catch (error) {
+            console.error('Error submitting application:', error);
+            return { success: false, message: 'Network error occurred' };
+        }
+    }
+};
+
 // Initialize the student dashboard
 document.addEventListener('DOMContentLoaded', () => {
     checkAuthentication();
@@ -49,6 +129,10 @@ const StudentDashboard = {
         this.loadNotifications();
         this.loadRecentActivity();
         this.setupEventListeners();
+        
+        // Check allotment status to show/hide allotment registration card
+        // Card is visible by default, will be hidden if student is already allocated
+        checkAllotmentStatus();
     },
 
     setupEventListeners() {
@@ -65,86 +149,105 @@ const StudentDashboard = {
 
     loadUserInfo() {
         const user = TokenManager.getUser();
-        const userInfo = document.getElementById('userInfo');
         
-        if (userInfo && user) {
-            userInfo.innerHTML = `
-                <h3>Welcome back, ${user.username}! 👋</h3>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem;">
-                    <div>
-                        <p><strong>Username:</strong> ${user.username}</p>
-                        <p><strong>Email:</strong> ${user.email || 'Not provided'}</p>
-                    </div>
-                    <div>
-                        <p><strong>Phone:</strong> ${user.phone || 'Not provided'}</p>
-                        <p><strong>Role:</strong> ${user.role}</p>
-                    </div>
-                </div>
-            `;
+        if (user) {
+            // Update individual info fields
+            const updateElement = (id, value) => {
+                const element = document.getElementById(id);
+                if (element) element.textContent = value || 'Not provided';
+            };
+            
+            updateElement('studentName', user.name || user.fullName || user.username);
+            updateElement('studentId', user.id || user.studentId);
+            updateElement('course', user.course);
+            updateElement('yearOfStudy', user.year || user.yearOfStudy);
+            updateElement('phone', user.phone);
+            updateElement('email', user.email);
         }
     },
 
     async loadRoomInfo() {
         try {
-            // For now, we'll use mock data since we don't have room allocation API yet
-            const mockRoomData = {
-                roomNumber: 'A-101',
-                hostelName: 'Sunrise Hostel',
-                roomType: 'Double Sharing',
-                occupancy: '2/2',
-                floor: '1st Floor'
-            };
-
-            // Update quick stats
-            document.getElementById('roomNumber').textContent = mockRoomData.roomNumber;
-            document.getElementById('hostelName').textContent = mockRoomData.hostelName;
-
-            // Update detailed room info
-            document.getElementById('detailRoomNumber').textContent = mockRoomData.roomNumber;
-            document.getElementById('detailHostelName').textContent = mockRoomData.hostelName;
-            document.getElementById('roomType').textContent = mockRoomData.roomType;
-            document.getElementById('occupancy').textContent = mockRoomData.occupancy;
-            document.getElementById('floor').textContent = mockRoomData.floor;
-
+            const roomInfoDiv = document.getElementById('roomInfo');
+            if (roomInfoDiv) {
+                // Check allotment status first
+                roomInfoDiv.innerHTML = `
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <span class="info-label">Room Number:</span>
+                            <span class="info-value" id="detailRoomNumber">Checking...</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Hostel:</span>
+                            <span class="info-value" id="detailHostelName">Checking...</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Room Type:</span>
+                            <span class="info-value" id="roomType">---</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Occupancy:</span>
+                            <span class="info-value" id="occupancy">---</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Floor:</span>
+                            <span class="info-value" id="floor">---</span>
+                        </div>
+                    </div>
+                `;
+                
+                // Now try to load actual room data
+                checkAllotmentStatus();
+            }
         } catch (error) {
             console.error('Error loading room info:', error);
-            // Show fallback data
-            document.getElementById('roomNumber').textContent = 'Not Assigned';
-            document.getElementById('hostelName').textContent = 'Not Assigned';
+            const roomInfoDiv = document.getElementById('roomInfo');
+            if (roomInfoDiv) {
+                roomInfoDiv.innerHTML = `
+                    <p style="color: #e74c3c;">Unable to load room information. Please refresh the page.</p>
+                `;
+            }
         }
     },
 
     async loadMaintenanceRequests() {
         try {
-            // Mock data for maintenance requests
-            const mockRequests = [
-                { id: 1, title: 'Leaky Faucet', status: 'Pending', date: '2025-09-15' },
-                { id: 2, title: 'AC Not Working', status: 'In Progress', date: '2025-09-10' },
-                { id: 3, title: 'Light Bulb Replacement', status: 'Completed', date: '2025-09-08' }
-            ];
-
-            // Update stats
-            const pending = mockRequests.filter(req => req.status === 'Pending' || req.status === 'In Progress').length;
-            const completed = mockRequests.filter(req => req.status === 'Completed').length;
-            
-            document.getElementById('pendingRequests').textContent = pending;
-            document.getElementById('completedRequests').textContent = completed;
-
-            // Show recent requests
-            const recentRequestsDiv = document.getElementById('recentRequests');
-            if (recentRequestsDiv) {
-                const recentHTML = mockRequests.slice(0, 3).map(req => `
-                    <div style="padding: 0.5rem; border-left: 3px solid ${req.status === 'Completed' ? '#27ae60' : req.status === 'In Progress' ? '#f39c12' : '#e74c3c'}; margin: 0.5rem 0; background: #f8f9fa; border-radius: 4px;">
-                        <strong>${req.title}</strong>
-                        <div style="font-size: 0.9rem; color: #666;">
-                            Status: ${req.status} | ${req.date}
-                        </div>
-                    </div>
-                `).join('');
+            const maintenanceDiv = document.getElementById('maintenanceRequests');
+            if (maintenanceDiv) {
+                // Mock data for demonstration
+                const mockRequests = [
+                    { id: 1, title: 'Leaky Faucet', status: 'Pending', date: '2025-09-15' },
+                    { id: 2, title: 'AC Not Working', status: 'In Progress', date: '2025-09-10' }
+                ];
                 
-                recentRequestsDiv.innerHTML = recentHTML || '<p style="color: #666; font-style: italic;">No recent requests</p>';
+                if (mockRequests.length === 0) {
+                    maintenanceDiv.innerHTML = `
+                        <p style="color: #6c757d; text-align: center; margin: 1rem 0;">
+                            No maintenance requests yet.
+                        </p>
+                        <button class="btn btn-primary" onclick="newMaintenanceRequest()" style="width: 100%;">
+                            Submit New Request
+                        </button>
+                    `;
+                } else {
+                    const requestsHTML = mockRequests.map(req => `
+                        <div style="padding: 0.75rem; border-left: 3px solid ${req.status === 'Completed' ? '#27ae60' : req.status === 'In Progress' ? '#f39c12' : '#e74c3c'}; margin: 0.5rem 0; background: #f8f9fa; border-radius: 4px;">
+                            <strong>${req.title}</strong>
+                            <div style="font-size: 0.9rem; color: #6c757d; margin-top: 0.25rem;">
+                                Status: ${req.status} | Date: ${req.date}
+                            </div>
+                        </div>
+                    `).join('');
+                    
+                    maintenanceDiv.innerHTML = `
+                        ${requestsHTML}
+                        <div style="margin-top: 1rem; display: flex; gap: 0.5rem;">
+                            <button class="btn btn-primary" onclick="newMaintenanceRequest()" style="flex: 1;">New Request</button>
+                            <button class="btn btn-outline" onclick="viewAllRequests()" style="flex: 1;">View All</button>
+                        </div>
+                    `;
+                }
             }
-
         } catch (error) {
             console.error('Error loading maintenance requests:', error);
         }
@@ -205,41 +308,1342 @@ const StudentDashboard = {
 
 // Dashboard Action Functions
 function viewRoomDetails() {
-    UIHelper.showAlert('Room details view coming soon!', 'info');
+    console.log('🔍 viewRoomDetails function called');
+    const roomNumber = document.getElementById('detailRoomNumber').textContent;
+    const hostelName = document.getElementById('detailHostelName').textContent;
+    
+    console.log('Room Number:', roomNumber, 'Hostel Name:', hostelName);
+    
+    let roomDetailsHTML = '';
+    
+    if (roomNumber === 'Not Assigned') {
+        console.log('Showing no room assigned message');
+        roomDetailsHTML = `
+            <div style="text-align: center; padding: 2rem;">
+                <div style="font-size: 3rem; margin-bottom: 1rem;">🏠</div>
+                <h4 style="color: #e67e22; margin-bottom: 1rem;">No Room Assigned</h4>
+                <p style="color: #7f8c8d; margin-bottom: 2rem;">You haven't been assigned to a hostel room yet.</p>
+                <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem;">
+                    <strong>💡 Next Steps:</strong><br>
+                    Apply for hostel allotment if available, or contact the hostel administration for assistance.
+                </div>
+                <button class="btn btn-primary" onclick="closeRoomDetailsModal(); openAllotmentModal();" style="margin-right: 10px;">
+                    Apply for Allotment
+                </button>
+                <button class="btn btn-secondary" onclick="closeRoomDetailsModal(); contactWarden();">
+                    Contact Warden
+                </button>
+            </div>
+        `;
+    } else {
+        console.log('Showing room details');
+        roomDetailsHTML = `
+            <div style="text-align: left;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+                    <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 8px; border-left: 4px solid #3498db;">
+                        <h5 style="color: #3498db; margin-bottom: 0.5rem;">🏠 Basic Information</h5>
+                        <p><strong>Room Number:</strong> ${roomNumber}</p>
+                        <p><strong>Hostel:</strong> ${hostelName}</p>
+                        <p><strong>Floor:</strong> ${document.getElementById('floor').textContent}</p>
+                    </div>
+                    <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 8px; border-left: 4px solid #27ae60;">
+                        <h5 style="color: #27ae60; margin-bottom: 0.5rem;">👥 Occupancy Details</h5>
+                        <p><strong>Room Type:</strong> ${document.getElementById('roomType').textContent}</p>
+                        <p><strong>Current Occupancy:</strong> ${document.getElementById('occupancy').textContent}</p>
+                        <p><strong>Status:</strong> <span style="color: #27ae60;">✅ Allocated</span></p>
+                    </div>
+                </div>
+                
+                <div style="background: #e8f4fd; padding: 1.5rem; border-radius: 8px; border-left: 4px solid #74b9ff;">
+                    <h5 style="color: #0984e3; margin-bottom: 1rem;">📋 Room Facilities</h5>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div>
+                            <p>✅ Furnished with bed and study table</p>
+                            <p>✅ Wardrobe and storage space</p>
+                            <p>✅ 24/7 electricity supply</p>
+                        </div>
+                        <div>
+                            <p>✅ High-speed Wi-Fi</p>
+                            <p>✅ Attached/shared bathroom</p>
+                            <p>✅ Common area access</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 1.5rem; padding: 1rem; background: #fff3cd; border-radius: 8px;">
+                    <strong>📞 Need Help?</strong> Contact your floor warden for any room-related issues or maintenance requests.
+                </div>
+            </div>
+        `;
+    }
+    
+    // Populate modal content and show it
+    document.getElementById('roomDetailsContent').innerHTML = roomDetailsHTML;
+    document.getElementById('roomDetailsModal').style.display = 'block';
+    document.body.style.overflow = 'hidden';
+}
+
+function closeRoomDetailsModal() {
+    document.getElementById('roomDetailsModal').style.display = 'none';
+    document.body.style.overflow = 'auto';
+}
+
+// General purpose modal functions
+function showGeneralModal(title, content, actions = []) {
+    document.getElementById('generalModalTitle').textContent = title;
+    document.getElementById('generalModalContent').innerHTML = content;
+    
+    // Clear and add action buttons
+    const actionsDiv = document.getElementById('generalModalActions');
+    actionsDiv.innerHTML = '';
+    actions.forEach(action => {
+        const button = document.createElement('button');
+        button.className = `btn ${action.class || 'btn-primary'}`;
+        button.textContent = action.text;
+        button.onclick = action.onclick;
+        button.style.marginLeft = '10px';
+        actionsDiv.appendChild(button);
+    });
+    
+    document.getElementById('generalModal').style.display = 'block';
+    document.body.style.overflow = 'hidden';
+}
+
+function closeGeneralModal() {
+    document.getElementById('generalModal').style.display = 'none';
+    document.body.style.overflow = 'auto';
 }
 
 function newMaintenanceRequest() {
-    UIHelper.showAlert('Maintenance request form coming soon!', 'info');
+    const requestTypes = [
+        '⚡ Electrical Issue', '🚰 Plumbing Issue', '🪑 Furniture Repair', 
+        '🧹 Cleaning Request', '❄️ AC/Heating Issue', '🔧 Other'
+    ];
+    
+    const options = requestTypes.map(type => `<option value="${type}">${type}</option>`).join('');
+    
+    const formHtml = `
+        <form id="maintenanceForm" class="modal-form">
+            <div class="form-group">
+                <label class="form-label">Request Type:</label>
+                <select id="requestType" required class="form-select">
+                    <option value="">Select Request Type</option>
+                    ${options}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Room Number:</label>
+                <input type="text" id="roomNumber" required class="form-input" placeholder="Enter your room number (e.g., A-201)">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Description:</label>
+                <textarea id="requestDescription" required class="form-textarea" placeholder="Please provide detailed information about the issue, including its location and severity..."></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Priority Level:</label>
+                <select id="requestPriority" required class="form-select">
+                    <option value="">Select Priority</option>
+                    <option value="low">🟢 Low - Can wait a few days</option>
+                    <option value="medium">🟡 Medium - Should be addressed soon</option>
+                    <option value="high">🟠 High - Needs attention within 24 hours</option>
+                    <option value="urgent">🔴 Urgent - Requires immediate attention</option>
+                </select>
+            </div>
+            
+            <div class="note-box info">
+                <small>
+                    <strong>Note:</strong> For urgent issues affecting safety or security, please also contact the warden immediately. 
+                    You will receive a tracking number once your request is submitted.
+                </small>
+            </div>
+            
+            <div class="btn-group">
+                <button type="button" onclick="closeGeneralModal()" class="btn btn-secondary">Cancel</button>
+                <button type="submit" class="btn btn-primary">🔧 Submit Request</button>
+            </div>
+        </form>
+    `;
+    
+    showGeneralModal('🔧 New Maintenance Request', formHtml);
+    
+    // Add form submission handler
+    setTimeout(() => {
+        const maintenanceForm = document.getElementById('maintenanceForm');
+        if (maintenanceForm) {
+            maintenanceForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const type = document.getElementById('requestType').value;
+                const roomNumber = document.getElementById('roomNumber').value;
+                const description = document.getElementById('requestDescription').value;
+                const priority = document.getElementById('requestPriority').value;
+                
+                if (type && roomNumber && description && priority) {
+                    const requestId = `REQ${Date.now()}`;
+                    const successHtml = `
+                        <div class="success-container">
+                            <div class="success-icon">✅</div>
+                            <h4 class="success-title">Request Submitted Successfully!</h4>
+                            <div class="success-details">
+                                <p><strong>Request ID:</strong> #${requestId}</p>
+                                <p><strong>Type:</strong> ${type}</p>
+                                <p><strong>Room:</strong> ${roomNumber}</p>
+                                <p><strong>Priority:</strong> ${priority.charAt(0).toUpperCase() + priority.slice(1)}</p>
+                                <p><strong>Status:</strong> Pending Review</p>
+                            </div>
+                            <p style="color: #6c757d; margin-bottom: 1rem;">
+                                You will receive updates on your request via email and dashboard notifications. 
+                                Expected response time based on priority: ${priority === 'urgent' ? '1-2 hours' : priority === 'high' ? '4-8 hours' : '24-48 hours'}.
+                            </p>
+                            <button onclick="closeGeneralModal()" class="btn btn-success">Close</button>
+                        </div>
+                    `;
+                    showGeneralModal('✅ Request Submitted', successHtml);
+                } else {
+                    // Show validation error within modal
+                    const existingError = document.querySelector('.error-message');
+                    if (existingError) existingError.remove();
+                    
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'error-message';
+                    errorDiv.style.cssText = 'background: #f8d7da; color: #721c24; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border-left: 4px solid #dc3545;';
+                    errorDiv.innerHTML = '<strong>Error:</strong> Please fill in all required fields.';
+                    maintenanceForm.insertBefore(errorDiv, maintenanceForm.firstChild);
+                }
+            });
+        }
+    }, 100);
 }
 
 function viewAllRequests() {
-    UIHelper.showAlert('All requests view coming soon!', 'info');
+    const sampleRequests = [
+        { id: '#REQ001', type: 'Electrical Issue', status: 'In Progress', date: '2025-09-18', priority: 'High' },
+        { id: '#REQ002', type: 'Plumbing Issue', status: 'Completed', date: '2025-09-15', priority: 'Medium' },
+        { id: '#REQ003', type: 'Furniture Repair', status: 'Pending', date: '2025-09-17', priority: 'Low' }
+    ];
+    
+    const requestsHtml = `
+        <div class="modal-content-container">
+            <p style="margin-bottom: 1.5rem; color: #7f8c8d;">Here are all your maintenance requests:</p>
+            ${sampleRequests.map(req => `
+                <div class="request-item ${req.priority.toLowerCase()}">
+                    <div class="request-header">
+                        <strong class="request-id">${req.id} - ${req.type}</strong>
+                        <span class="status-badge status-${req.status.toLowerCase().replace(' ', '')}">${req.status}</span>
+                    </div>
+                    <div style="font-size: 0.9rem; color: #7f8c8d;">
+                        <span>Priority: <strong class="priority-${req.priority.toLowerCase()}">${req.priority}</strong></span> | 
+                        <span>Date: ${req.date}</span>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+    
+    const actions = [
+        {
+            text: 'New Request',
+            class: 'btn-primary',
+            onclick: () => { closeGeneralModal(); newMaintenanceRequest(); }
+        }
+    ];
+    
+    showGeneralModal('📋 All Maintenance Requests', requestsHtml, actions);
 }
 
 function viewAllNotifications() {
-    UIHelper.showAlert('All notifications view coming soon!', 'info');
+    const sampleNotifications = [
+        { title: 'Hostel Fee Due', message: 'Please pay your hostel fee by Sept 30th', date: '2025-09-19', type: 'warning', urgent: true },
+        { title: 'Room Inspection', message: 'Room inspection scheduled for Sept 25th', date: '2025-09-18', type: 'info', urgent: false },
+        { title: 'Maintenance Completed', message: 'Your electrical issue has been resolved', date: '2025-09-17', type: 'success', urgent: false }
+    ];
+    
+    const notificationsHtml = `
+        <div class="modal-content-container">
+            <p style="margin-bottom: 1.5rem; color: #7f8c8d;">Your recent notifications:</p>
+            ${sampleNotifications.map(notif => `
+                <div class="notification-item notification-${notif.type}">
+                    <div class="notification-meta">
+                        <strong style="color: #2c3e50;">${notif.title}</strong>
+                        <div>
+                            ${notif.urgent ? '<span class="urgency-badge urgency-urgent">URGENT</span>' : ''}
+                            <span class="notification-date">${notif.date}</span>
+                        </div>
+                    </div>
+                    <p style="margin: 0.5rem 0; color: #34495e;">${notif.message}</p>
+                </div>
+            `).join('')}
+        </div>
+    `;
+    
+    showGeneralModal('🔔 All Notifications', notificationsHtml);
 }
 
 function editProfile() {
-    UIHelper.showAlert('Profile editing coming soon!', 'info');
+    console.log('👤 editProfile function called');
+    
+    // Pre-fill the form with current user data
+    const user = TokenManager.getUser();
+    if (user) {
+        document.getElementById('editUsername').value = user.username || '';
+        document.getElementById('editEmail').value = user.email || '';
+        document.getElementById('editPhone').value = user.phone || '';
+        document.getElementById('editFullName').value = user.fullName || user.name || '';
+        document.getElementById('editCourse').value = user.course || '';
+        document.getElementById('editYear').value = user.year || '';
+        document.getElementById('editStudentId').value = user.studentId || user.id || '';
+        document.getElementById('editEmergencyName').value = user.emergencyContact?.name || '';
+        document.getElementById('editEmergencyPhone').value = user.emergencyContact?.phone || '';
+        document.getElementById('editEmergencyRelation').value = user.emergencyContact?.relation || '';
+    }
+    
+    // Show the modal
+    document.getElementById('editProfileModal').style.display = 'block';
+    document.body.style.overflow = 'hidden';
+    
+    // Setup form submission handler
+    const profileForm = document.getElementById('editProfileForm');
+    if (profileForm && !profileForm.hasAttribute('data-handler-added')) {
+        profileForm.setAttribute('data-handler-added', 'true');
+        profileForm.addEventListener('submit', handleProfileSubmission);
+    }
 }
 
+function closeEditProfileModal() {
+    document.getElementById('editProfileModal').style.display = 'none';
+    document.body.style.overflow = 'auto';
+    
+    // Clear any error/success messages
+    const form = document.getElementById('editProfileForm');
+    const existingMessage = form.querySelector('.form-error, .form-success');
+    if (existingMessage) existingMessage.remove();
+}
+
+async function handleProfileSubmission(event) {
+    event.preventDefault();
+    
+    const formData = new FormData(event.target);
+    const submitBtn = document.getElementById('saveProfileBtn');
+    const originalText = submitBtn.textContent;
+    
+    try {
+        // Show loading state
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner"></span>Saving...';
+        
+        // Clear previous alerts
+        dashClearAlerts();
+        
+        // Collect form data
+        const profileData = {
+            email: formData.get('email'),
+            phone: formData.get('phone'),
+            fullName: formData.get('fullName'),
+            course: formData.get('course'),
+            year: formData.get('year'),
+            studentId: formData.get('studentId'),
+            emergencyContact: {
+                name: formData.get('emergencyName'),
+                phone: formData.get('emergencyPhone'),
+                relation: formData.get('emergencyRelation')
+            }
+        };
+        
+        // Validate required fields
+        if (!profileData.email || !profileData.phone) {
+            // Show error directly in modal without alert
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'form-error';
+            errorDiv.style.color = '#e74c3c';
+            errorDiv.style.backgroundColor = '#fdeaea';
+            errorDiv.style.border = '1px solid #e74c3c';
+            errorDiv.style.padding = '10px';
+            errorDiv.style.borderRadius = '5px';
+            errorDiv.style.marginBottom = '15px';
+            errorDiv.textContent = 'Email and phone number are required fields.';
+            
+            const form = document.getElementById('editProfileForm');
+            const existingError = form.querySelector('.form-error');
+            if (existingError) existingError.remove();
+            form.insertBefore(errorDiv, form.firstChild);
+            return;
+        }
+        
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(profileData.email)) {
+            // Show error directly in modal without alert
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'form-error';
+            errorDiv.style.color = '#e74c3c';
+            errorDiv.style.backgroundColor = '#fdeaea';
+            errorDiv.style.border = '1px solid #e74c3c';
+            errorDiv.style.padding = '10px';
+            errorDiv.style.borderRadius = '5px';
+            errorDiv.style.marginBottom = '15px';
+            errorDiv.textContent = 'Please enter a valid email address.';
+            
+            const form = document.getElementById('editProfileForm');
+            const existingError = form.querySelector('.form-error');
+            if (existingError) existingError.remove();
+            form.insertBefore(errorDiv, form.firstChild);
+            return;
+        }
+        
+        // Call backend API to update profile
+        const response = await fetch(apiUrl('/api/auth/profile'), {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${TokenManager.getToken()}`
+            },
+            body: JSON.stringify(profileData)
+        });
+        
+        const result = await response.json();
+        
+        if (!response.ok) {
+            // Show error directly in modal without alert
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'form-error';
+            errorDiv.style.color = '#e74c3c';
+            errorDiv.style.backgroundColor = '#fdeaea';
+            errorDiv.style.border = '1px solid #e74c3c';
+            errorDiv.style.padding = '10px';
+            errorDiv.style.borderRadius = '5px';
+            errorDiv.style.marginBottom = '15px';
+            errorDiv.textContent = result.message || 'Failed to update profile';
+            
+            const form = document.getElementById('editProfileForm');
+            const existingError = form.querySelector('.form-error');
+            if (existingError) existingError.remove();
+            form.insertBefore(errorDiv, form.firstChild);
+            return;
+        }
+        
+        // Update local user data
+        const currentUser = TokenManager.getUser();
+        const updatedUser = { ...currentUser, ...profileData };
+        TokenManager.setUser(updatedUser);
+        
+        // Refresh user info display
+        StudentDashboard.loadUserInfo();
+        
+        // Show success message directly in modal
+        const successDiv = document.createElement('div');
+        successDiv.className = 'form-success';
+        successDiv.style.color = '#27ae60';
+        successDiv.style.backgroundColor = '#eafaf1';
+        successDiv.style.border = '1px solid #27ae60';
+        successDiv.style.padding = '10px';
+        successDiv.style.borderRadius = '5px';
+        successDiv.style.marginBottom = '15px';
+        successDiv.textContent = 'Profile updated successfully!';
+        
+        const form = document.getElementById('editProfileForm');
+        const existingMessage = form.querySelector('.form-error, .form-success');
+        if (existingMessage) existingMessage.remove();
+        form.insertBefore(successDiv, form.firstChild);
+        
+        // Auto-close modal after 2 seconds
+        setTimeout(() => {
+            closeEditProfileModal();
+        }, 2000);
+        
+    } catch (error) {
+        console.error('Profile update error:', error);
+        // Show error directly in modal without alert
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'form-error';
+        errorDiv.style.color = '#e74c3c';
+        errorDiv.style.backgroundColor = '#fdeaea';
+        errorDiv.style.border = '1px solid #e74c3c';
+        errorDiv.style.padding = '10px';
+        errorDiv.style.borderRadius = '5px';
+        errorDiv.style.marginBottom = '15px';
+        errorDiv.textContent = 'Failed to connect to server. Please try again.';
+        
+        const form = document.getElementById('editProfileForm');
+        const existingError = form.querySelector('.form-error');
+        if (existingError) existingError.remove();
+        form.insertBefore(errorDiv, form.firstChild);
+    } finally {
+        // Reset button
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+    }
+}
+
+
 function changePassword() {
-    UIHelper.showAlert('Password change form coming soon!', 'info');
+    document.getElementById('changePasswordModal').style.display = 'block';
+    document.body.style.overflow = 'hidden';
+    
+    // Setup form submission handler
+    const passwordForm = document.getElementById('changePasswordForm');
+    if (passwordForm && !passwordForm.hasAttribute('data-handler-added')) {
+        passwordForm.setAttribute('data-handler-added', 'true');
+        passwordForm.addEventListener('submit', handlePasswordSubmission);
+    }
+}
+
+function closePasswordModal() {
+    document.getElementById('changePasswordModal').style.display = 'none';
+    document.body.style.overflow = 'auto';
+    document.getElementById('changePasswordForm').reset();
+    dashClearAlerts();
+}
+
+function togglePasswordVisibility(fieldId) {
+    const field = document.getElementById(fieldId);
+    const toggleButton = field.nextElementSibling;
+    const eyeOpen = toggleButton.querySelector('.eye-open');
+    const eyeClosed = toggleButton.querySelector('.eye-closed');
+    
+    if (field.type === 'password') {
+        field.type = 'text';
+        eyeOpen.style.display = 'none';
+        eyeClosed.style.display = 'block';
+    } else {
+        field.type = 'password';
+        eyeOpen.style.display = 'block';
+        eyeClosed.style.display = 'none';
+    }
+}
+
+async function handlePasswordSubmission(event) {
+    event.preventDefault();
+    
+    const formData = new FormData(event.target);
+    const currentPassword = formData.get('currentPassword');
+    const newPassword = formData.get('newPassword');
+    const confirmPassword = formData.get('confirmPassword');
+    const submitBtn = document.getElementById('changePasswordBtn');
+
+    // Clear previous alerts
+    dashClearAlerts();
+
+    // Validation
+    if (newPassword !== confirmPassword) {
+    dashShowAlert('New passwords do not match!', 'error');
+        return;
+    }
+
+    if (newPassword.length < 6) {
+    dashShowAlert('New password must be at least 6 characters long!', 'error');
+        return;
+    }
+
+    if (currentPassword === newPassword) {
+    dashShowAlert('New password must be different from current password!', 'error');
+        return;
+    }
+
+    try {
+        // Show loading state
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner"></span>Changing Password...';
+
+        // Call backend API to change password
+        const response = await fetch(apiUrl('/api/auth/change-password'), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${TokenManager.getToken()}`
+            },
+            body: JSON.stringify({
+                currentPassword: currentPassword,
+                newPassword: newPassword
+            })
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            // Show specific error from backend
+            dashShowAlert(result.message || 'Password change failed', 'error');
+            
+            // If current password is wrong, focus on that field
+            if (result.message && result.message.toLowerCase().includes('current password')) {
+                document.getElementById('currentPassword').focus();
+                document.getElementById('currentPassword').select();
+            }
+            return;
+        }
+
+        // Show success message
+    dashShowAlert(result.message || 'Password changed successfully!', 'success');
+
+        // Auto-close modal after 2 seconds
+        setTimeout(() => {
+            closePasswordModal();
+        }, 2000);
+
+    } catch (error) {
+        console.error('Password change error:', error);
+    dashShowAlert('Failed to connect to server. Please try again.', 'error');
+    } finally {
+        // Reset button
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = 'Change Password';
+    }
+}
+
+function dashShowAlert(message, type = 'info') {
+    console.log('🚨 showAlert called with:', { message: message.substring(0, 100), type });
+    
+    // Remove existing alerts
+    dashClearAlerts();
+
+    // Create alert element
+    const alert = document.createElement('div');
+    alert.className = `alert alert-${type}`;
+    
+    console.log('Alert element created with class:', alert.className);
+    
+    // Handle HTML content
+    if (message.includes('<')) {
+        alert.innerHTML = message;
+    } else {
+        alert.textContent = message;
+    }
+
+    // Try to insert alert in active modal first, then fallback to main container
+    const activeModal = document.querySelector('.modal[style*="block"]');
+    if (activeModal) {
+    console.log('Inserting alert into active modal');
+        const modalContent = activeModal.querySelector('.modal-content');
+        modalContent.insertBefore(alert, modalContent.firstChild);
+    } else {
+        console.log('No active modal, inserting into main container');
+        // Insert alert in main container if no modal is active
+        const container = document.querySelector('.container');
+        if (container) {
+            console.log('Found container, inserting alert');
+            container.insertBefore(alert, container.firstChild);
+        } else {
+            console.log('No container found, inserting into body');
+            // Fallback: insert at top of body
+            document.body.insertBefore(alert, document.body.firstChild);
+        }
+    }
+
+    console.log('Alert inserted, setting timeout');
+    
+    // Auto-remove error alerts after 8 seconds, others after 5 seconds
+    const timeout = (type === 'error' || type === 'warning') ? 8000 : 5000;
+    setTimeout(() => {
+        if (alert.parentNode) {
+            alert.parentNode.removeChild(alert);
+            console.log('Alert removed after timeout');
+        }
+    }, timeout);
+}
+
+function dashClearAlerts() {
+    const alerts = document.querySelectorAll('.alert');
+    alerts.forEach(alert => {
+        if (alert.parentNode) {
+            alert.parentNode.removeChild(alert);
+        }
+    });
 }
 
 function reportIssue() {
-    UIHelper.showAlert('Issue reporting form coming soon!', 'info');
+    const formHtml = `
+        <form id="reportIssueForm" class="modal-form">
+            <div class="form-group">
+                <label class="form-label">Issue Category:</label>
+                <select id="issueCategory" required class="form-select">
+                    <option value="">Select Category</option>
+                    <option value="security">🔒 Security Concern</option>
+                    <option value="harassment">🚫 Harassment/Bullying</option>
+                    <option value="theft">🕵️ Theft/Missing Items</option>
+                    <option value="noise">🔊 Noise Complaint</option>
+                    <option value="safety">⚠️ Safety Hazard</option>
+                    <option value="maintenance">🔧 Maintenance Issue</option>
+                    <option value="other">📝 Other</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Description:</label>
+                <textarea id="issueDescription" required class="form-textarea large" placeholder="Please provide detailed information about the issue, including when it occurred and any relevant details..."></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Location:</label>
+                <input type="text" id="issueLocation" required class="form-input" placeholder="Room number, floor, or specific area where this occurred">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-checkbox-container">
+                    <input type="checkbox" id="anonymousReport" class="form-checkbox">
+                    Submit anonymously (your identity will not be disclosed)
+                </label>
+            </div>
+            
+            <div class="note-box warning">
+                <small>
+                    <strong>Note:</strong> All reports are taken seriously and will be investigated promptly. 
+                    For urgent security issues, please also contact campus security immediately.
+                </small>
+            </div>
+            
+            <div class="btn-group">
+                <button type="button" onclick="closeGeneralModal()" class="btn btn-secondary">Cancel</button>
+                <button type="submit" class="btn btn-danger">🚨 Submit Report</button>
+            </div>
+        </form>
+    `;
+    
+    showGeneralModal('⚠️ Report Issue', formHtml);
+    
+    // Add form submission handler
+    setTimeout(() => {
+        const reportForm = document.getElementById('reportIssueForm');
+        if (reportForm) {
+            reportForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const category = document.getElementById('issueCategory').value;
+                const description = document.getElementById('issueDescription').value;
+                const location = document.getElementById('issueLocation').value;
+                const anonymous = document.getElementById('anonymousReport').checked;
+                
+                if (category && description && location) {
+                    const reportId = `RPT${Date.now()}`;
+                    const successHtml = `
+                        <div class="success-container">
+                            <div class="success-icon">✅</div>
+                            <h4 class="success-title">Report Submitted Successfully!</h4>
+                            <div class="success-details">
+                                <p><strong>Report ID:</strong> #${reportId}</p>
+                                <p><strong>Status:</strong> Under Review</p>
+                                <p><strong>Expected Response:</strong> Within 24-48 hours</p>
+                            </div>
+                            ${anonymous ? 
+                                '<p style="color: #6c757d;">Your identity will remain anonymous throughout the investigation.</p>' : 
+                                '<p style="color: #6c757d;">You may be contacted for follow-up if additional information is needed.</p>'
+                            }
+                            <button onclick="closeGeneralModal()" class="btn btn-success">Close</button>
+                        </div>
+                    `;
+                    showGeneralModal('✅ Report Submitted', successHtml);
+                } else {
+                    // Show validation error within modal
+                    const existingError = document.querySelector('.error-message');
+                    if (existingError) existingError.remove();
+                    
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'error-message';
+                    errorDiv.style.cssText = 'background: #f8d7da; color: #721c24; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border-left: 4px solid #dc3545;';
+                    errorDiv.innerHTML = '<strong>Error:</strong> Please fill in all required fields.';
+                    reportForm.insertBefore(errorDiv, reportForm.firstChild);
+                }
+            });
+        }
+    }, 100);
 }
 
 function viewHostelRules() {
-    UIHelper.showAlert('Hostel rules page coming soon!', 'info');
+    const rulesHtml = `
+        <div class="modal-content-container">
+            <div class="info-card orange">
+                <h5 style="color: #e67e22; margin-bottom: 0.5rem;">🕘 Timing Rules:</h5>
+                <ul class="styled-list">
+                    <li>Hostel gates close at 10:00 PM on weekdays</li>
+                    <li>Weekend curfew extended to 11:00 PM</li>
+                    <li>Late entry requires prior permission</li>
+                </ul>
+            </div>
+            
+            <div class="info-card blue">
+                <h5 style="color: #3498db; margin-bottom: 0.5rem;">👥 Visitor Policy:</h5>
+                <ul class="styled-list">
+                    <li>Visitors allowed only in common areas</li>
+                    <li>Visitor timings: 9:00 AM - 6:00 PM</li>
+                    <li>All visitors must register at reception</li>
+                </ul>
+            </div>
+            
+            <div class="info-card pink">
+                <h5 style="color: #e74c3c; margin-bottom: 0.5rem;">🚫 Prohibited Items:</h5>
+                <ul class="styled-list">
+                    <li>Alcohol and illegal substances</li>
+                    <li>Cooking appliances (except electric kettles)</li>
+                    <li>Pets and animals</li>
+                    <li>Loud music equipment</li>
+                </ul>
+            </div>
+            
+            <div class="info-card green">
+                <h5 style="color: #27ae60; margin-bottom: 0.5rem;">🧹 Cleanliness:</h5>
+                <ul class="styled-list">
+                    <li>Keep rooms and common areas clean</li>
+                    <li>Dispose waste in designated bins</li>
+                    <li>Weekly room inspections</li>
+                </ul>
+            </div>
+            
+            <div class="info-card yellow">
+                <h5 style="color: #856404; margin-bottom: 0.5rem;">💰 Penalties:</h5>
+                <ul class="styled-list" style="color: #856404;">
+                    <li>Late entry: Warning (1st time), ₹100 fine (repeat)</li>
+                    <li>Damage to property: Repair cost + ₹500 fine</li>
+                    <li>Noise complaints: ₹200 fine</li>
+                </ul>
+            </div>
+        </div>
+    `;
+    
+    showGeneralModal('📋 Hostel Rules & Regulations', rulesHtml);
 }
 
 function contactWarden() {
-    UIHelper.showAlert('Warden contact form coming soon!', 'info');
+    const contactInfo = `
+        <div class="modal-content-container">
+            <div class="info-card blue">
+                <h5>🏠 Boys Hostel A - Mr. Rajesh Kumar</h5>
+                <div class="contact-info">
+                    <div>
+                        <p><strong>📞 Phone:</strong> +91 9876543210</p>
+                        <p><strong>✉️ Email:</strong> warden.boysA@college.edu</p>
+                    </div>
+                    <div>
+                        <p><strong>📍 Office:</strong> Ground Floor, Boys Hostel A</p>
+                        <p><strong>🕐 Hours:</strong> 9:00 AM - 6:00 PM</p>
+                    </div>
+                </div>
+                <div class="btn-group">
+                    <a href="tel:+919876543210" class="btn btn-success btn-small action-link">Call</a>
+                    <a href="mailto:warden.boysA@college.edu" class="btn btn-primary btn-small action-link">Email</a>
+                </div>
+            </div>
+            
+            <div class="info-card purple">
+                <h5>🏠 Boys Hostel B - Mr. Suresh Patel</h5>
+                <div class="contact-info">
+                    <div>
+                        <p><strong>📞 Phone:</strong> +91 9876543211</p>
+                        <p><strong>✉️ Email:</strong> warden.boysB@college.edu</p>
+                    </div>
+                    <div>
+                        <p><strong>📍 Office:</strong> Ground Floor, Boys Hostel B</p>
+                        <p><strong>🕐 Hours:</strong> 9:00 AM - 6:00 PM</p>
+                    </div>
+                </div>
+                <div class="btn-group">
+                    <a href="tel:+919876543211" class="btn btn-success btn-small action-link">Call</a>
+                    <a href="mailto:warden.boysB@college.edu" class="btn btn-primary btn-small action-link">Email</a>
+                </div>
+            </div>
+            
+            <div class="info-card pink">
+                <h5>🏠 Girls Hostel A - Mrs. Priya Sharma</h5>
+                <div class="contact-info">
+                    <div>
+                        <p><strong>📞 Phone:</strong> +91 9876543212</p>
+                        <p><strong>✉️ Email:</strong> warden.girlsA@college.edu</p>
+                    </div>
+                    <div>
+                        <p><strong>📍 Office:</strong> Ground Floor, Girls Hostel A</p>
+                        <p><strong>🕐 Hours:</strong> 9:00 AM - 6:00 PM</p>
+                    </div>
+                </div>
+                <div class="btn-group">
+                    <a href="tel:+919876543212" class="btn btn-success btn-small action-link">Call</a>
+                    <a href="mailto:warden.girlsA@college.edu" class="btn btn-primary btn-small action-link">Email</a>
+                </div>
+            </div>
+            
+            <div class="info-card orange">
+                <h5>🏠 Girls Hostel B - Mrs. Meena Gupta</h5>
+                <div class="contact-info">
+                    <div>
+                        <p><strong>📞 Phone:</strong> +91 9876543213</p>
+                        <p><strong>✉️ Email:</strong> warden.girlsB@college.edu</p>
+                    </div>
+                    <div>
+                        <p><strong>📍 Office:</strong> Ground Floor, Girls Hostel B</p>
+                        <p><strong>🕐 Hours:</strong> 9:00 AM - 6:00 PM</p>
+                    </div>
+                </div>
+                <div class="btn-group">
+                    <a href="tel:+919876543213" class="btn btn-success btn-small action-link">Call</a>
+                    <a href="mailto:warden.girlsB@college.edu" class="btn btn-primary btn-small action-link">Email</a>
+                </div>
+            </div>
+            
+            <div class="emergency-card">
+                <h5>🚨 Emergency Contact</h5>
+                <p>For urgent issues after office hours</p>
+                <a href="tel:+919876543200" class="btn btn-danger btn-large">📞 +91 9876543200</a>
+            </div>
+        </div>
+    `;
+    
+    showGeneralModal('📞 Contact Warden', contactInfo);
 }
 
 function viewFacilities() {
-    UIHelper.showAlert('Facilities information coming soon!', 'info');
+    const facilitiesHtml = `
+        <div class="modal-content-container">
+            <div class="info-card blue">
+                <h5>🛏️ Room Facilities</h5>
+                <div class="grid-auto">
+                    <ul class="styled-list">
+                        <li>Furnished rooms with bed, study table, and wardrobe</li>
+                        <li>24/7 electricity and water supply</li>
+                    </ul>
+                    <ul class="styled-list">
+                        <li>High-speed Wi-Fi connectivity</li>
+                        <li>Attached bathrooms (select rooms)</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="info-card orange">
+                <h5>🍽️ Dining Facilities</h5>
+                <div class="grid-2">
+                    <div>
+                        <h6 style="color: #e67e22; margin-bottom: 0.5rem;">Meal Options:</h6>
+                        <ul class="styled-list compact">
+                            <li>Nutritious vegetarian meals</li>
+                            <li>Non-vegetarian options</li>
+                            <li>Special dietary requirements</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h6 style="color: #e67e22; margin-bottom: 0.5rem;">Timings:</h6>
+                        <ul class="styled-list compact">
+                            <li>Breakfast: 7:00 AM - 9:00 AM</li>
+                            <li>Lunch: 12:00 PM - 2:00 PM</li>
+                            <li>Dinner: 7:00 PM - 9:00 PM</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="info-card green">
+                <h5>🏃‍♂️ Recreation & Sports</h5>
+                <div class="grid-auto-200">
+                    <div>
+                        <h6 style="color: #27ae60; margin-bottom: 0.5rem;">Indoor:</h6>
+                        <ul class="styled-list compact">
+                            <li>Common room with TV</li>
+                            <li>Indoor games room</li>
+                            <li>Fully equipped gym</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h6 style="color: #27ae60; margin-bottom: 0.5rem;">Outdoor:</h6>
+                        <ul class="styled-list compact">
+                            <li>Basketball court</li>
+                            <li>Badminton court</li>
+                            <li>Cricket ground</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="info-card pink">
+                <h5>🔧 Essential Services</h5>
+                <div class="grid-auto">
+                    <ul class="styled-list">
+                        <li>24/7 security & CCTV surveillance</li>
+                        <li>Laundry and cleaning services</li>
+                        <li>Medical first aid facility</li>
+                    </ul>
+                    <ul class="styled-list">
+                        <li>Maintenance and repair services</li>
+                        <li>Postal and courier services</li>
+                        <li>Reading room and library</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="info-card gradient">
+                <h5>✨ Additional Amenities</h5>
+                <div class="facility-tags">
+                    <span class="facility-tag">🚗 Parking Facility</span>
+                    <span class="facility-tag">🏠 Guest Rooms</span>
+                    <span class="facility-tag">💳 ATM Facility</span>
+                    <span class="facility-tag">📝 Stationery Shop</span>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    showGeneralModal('🏢 Hostel Facilities', facilitiesHtml);
+}
+
+// Allotment Registration Functions
+function openAllotmentModal() {
+    const modal = document.getElementById('allotmentModal');
+    if (modal) {
+        // Pre-fill user information
+        prefillUserInfo();
+        modal.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+function closeAllotmentModal() {
+    const modal = document.getElementById('allotmentModal');
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+        // Clear form
+        document.getElementById('allotmentForm').reset();
+        dashClearAlerts();
+    }
+}
+
+function prefillUserInfo() {
+    const user = TokenManager.getUser();
+    if (user) {
+        document.getElementById('studentId').value = user.id || '';
+        document.getElementById('studentName').value = user.name || user.fullName || '';
+    }
+}
+
+function viewAllotmentGuidelines() {
+    const guidelinesHtml = `
+        <div class="modal-content-container">
+            <div class="info-card light-blue">
+                <h5 style="color: #1976d2; margin-bottom: 1rem;">📋 Application Guidelines</h5>
+                <ul class="styled-list spaced">
+                    <li>All fields marked with <span style="color: #e74c3c;">*</span> are mandatory</li>
+                    <li>Room allotment is subject to availability at time of processing</li>
+                    <li>Preferences are considered but cannot be guaranteed</li>
+                    <li>Medical needs require proper documentation from registered physician</li>
+                </ul>
+            </div>
+            
+            <div class="info-card orange">
+                <h5 style="color: #f57c00; margin-bottom: 1rem;">💰 Payment & Timeline</h5>
+                <ul class="styled-list spaced">
+                    <li>Fee payment must be completed within <strong>7 days</strong> of allotment confirmation</li>
+                    <li>Late payment may result in forfeiture of allotted room</li>
+                    <li>Refund policy applies as per college guidelines</li>
+                </ul>
+            </div>
+            
+            <div class="info-card green">
+                <h5 style="color: #388e3c; margin-bottom: 1rem;">🔄 Change Requests</h5>
+                <ul class="styled-list spaced">
+                    <li>Room change requests can be submitted after <strong>30 days</strong> of initial allotment</li>
+                    <li>Valid reasons required for room change approval</li>
+                    <li>Subject to room availability and administrative approval</li>
+                </ul>
+            </div>
+            
+            <div class="info-card pink">
+                <h5 style="color: #c2185b; margin-bottom: 1rem;">📞 Contact Support</h5>
+                <ul class="styled-list spaced">
+                    <li>For technical issues with the application form</li>
+                    <li>For questions about room preferences</li>
+                    <li>For medical accommodation requests</li>
+                </ul>
+                <div class="btn-group center">
+                    <a href="mailto:hostel@college.edu" class="btn btn-danger">📧 Contact Hostel Office</a>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    showGeneralModal('📋 Hostel Allotment Guidelines', guidelinesHtml);
+}
+
+// Handle allotment form submission
+document.addEventListener('DOMContentLoaded', () => {
+    const allotmentForm = document.getElementById('allotmentForm');
+    if (allotmentForm) {
+        allotmentForm.addEventListener('submit', handleAllotmentSubmission);
+    }
+});
+
+async function handleAllotmentSubmission(event) {
+    event.preventDefault();
+    
+    const submitBtn = document.getElementById('submitAllotmentBtn');
+    const originalText = submitBtn.textContent;
+    
+    try {
+        // Show loading state
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner"></span>Submitting...';
+        
+    // Clear previous alerts
+    dashClearAlerts();
+        
+        // Validate form
+        if (!validateAllotmentForm()) {
+            return;
+        }
+        
+        // Collect form data
+        const formData = collectAllotmentFormData();
+        
+        // Submit to backend
+        const response = await fetch(apiUrl('/api/allotment/register'), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${TokenManager.getToken()}`
+            },
+            body: JSON.stringify(formData)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            showAlert('Allotment application submitted successfully! You will be notified once processed.', 'success');
+            setTimeout(() => {
+                closeAllotmentModal();
+                // Refresh dashboard to show updated status
+                location.reload();
+            }, 2000);
+        } else {
+            showAlert(result.message || 'Failed to submit application. Please try again.', 'error');
+        }
+        
+    } catch (error) {
+        console.error('Allotment submission error:', error);
+        showAlert('Network error. Please check your connection and try again.', 'error');
+    } finally {
+        // Reset button state
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+    }
+}
+
+function validateAllotmentForm() {
+    const requiredFields = [
+        'studentId', 'studentName', 'course', 'year', 'academicScore', 'phoneNumber',
+        'hostelPreference', 'roomType', 'emergencyName', 'emergencyPhone', 'emergencyRelation'
+    ];
+    
+    for (const fieldId of requiredFields) {
+        const field = document.getElementById(fieldId);
+        if (!field.value.trim()) {
+            showAlert(`Please fill in the ${field.previousElementSibling.textContent.replace(' *', '')} field.`, 'error');
+            field.focus();
+            return false;
+        }
+    }
+    
+    // Validate academic score based on year
+    const year = document.getElementById('year').value;
+    const academicScore = document.getElementById('academicScore').value.trim();
+    
+    if (year === '1') {
+        // For 1st year, validate rank (should be a positive integer)
+        if (!/^\d+$/.test(academicScore) || parseInt(academicScore) <= 0) {
+            showAlert('Please enter a valid entrance exam rank (positive number).', 'error');
+            document.getElementById('academicScore').focus();
+            return false;
+        }
+    } else {
+        // For other years, validate CGPA (should be between 0 and 10)
+        const cgpa = parseFloat(academicScore);
+        if (isNaN(cgpa) || cgpa < 0 || cgpa > 10) {
+            showAlert('Please enter a valid CGPA between 0 and 10.', 'error');
+            document.getElementById('academicScore').focus();
+            return false;
+        }
+    }
+    
+    // Check if terms are agreed
+    const agreeTerms = document.getElementById('agreeTerms');
+    if (!agreeTerms.checked) {
+        showAlert('Please agree to the hostel terms and conditions.', 'error');
+        agreeTerms.focus();
+        return false;
+    }
+    
+    // Validate phone numbers
+    const phoneRegex = /^[\+]?[1-9][\d]{9,14}$/;
+    const phoneNumber = document.getElementById('phoneNumber').value;
+    const emergencyPhone = document.getElementById('emergencyPhone').value;
+    
+    if (!phoneRegex.test(phoneNumber)) {
+        showAlert('Please enter a valid phone number.', 'error');
+        document.getElementById('phoneNumber').focus();
+        return false;
+    }
+    
+    if (!phoneRegex.test(emergencyPhone)) {
+        showAlert('Please enter a valid emergency contact phone number.', 'error');
+        document.getElementById('emergencyPhone').focus();
+        return false;
+    }
+    
+    return true;
+}
+
+function collectAllotmentFormData() {
+    return {
+        studentId: document.getElementById('studentId').value.trim(),
+        studentName: document.getElementById('studentName').value.trim(),
+        course: document.getElementById('course').value.trim(),
+        year: document.getElementById('year').value,
+        academicScore: document.getElementById('academicScore').value.trim(),
+        phoneNumber: document.getElementById('phoneNumber').value.trim(),
+        hostelPreference: document.getElementById('hostelPreference').value,
+        roomType: document.getElementById('roomType').value,
+        floorPreference: document.getElementById('floorPreference').value || null,
+        specialRequirements: document.getElementById('specialRequirements').value || null,
+        additionalNotes: document.getElementById('additionalNotes').value.trim() || null,
+        emergencyContact: {
+            name: document.getElementById('emergencyName').value.trim(),
+            phone: document.getElementById('emergencyPhone').value.trim(),
+            relation: document.getElementById('emergencyRelation').value
+        }
+    };
+}
+
+// Check allotment status and show/hide allotment card
+async function checkAllotmentStatus() {
+    console.log('🔍 Checking allotment status...');
+    const token = TokenManager.getToken();
+    console.log('🔑 Token available:', !!token);
+    
+    try {
+        const response = await fetch(apiUrl('/api/allotment/status'), {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        console.log('📡 Response status:', response.status);
+        
+        if (response.ok) {
+            const data = await response.json();
+            console.log('📄 Allotment data:', data);
+            updateAllotmentDisplay(data);
+        } else {
+            const errorText = await response.text();
+            console.error('❌ Failed to fetch allotment status:', response.status, errorText);
+            // Show allotment card and hide maintenance card by default if can't fetch status
+            console.log('📝 Showing allotment card due to API error');
+            const allotmentCard = document.getElementById('allotmentCard');
+            const maintenanceCard = document.getElementById('maintenanceCard');
+            if (allotmentCard) {
+                allotmentCard.style.display = 'block';
+            }
+            if (maintenanceCard) {
+                maintenanceCard.style.display = 'none';
+            }
+        }
+    } catch (error) {
+        console.error('❌ Error checking allotment status:', error);
+        // Show allotment card and hide maintenance card by default if error
+        console.log('📝 Showing allotment card due to network error');
+        const allotmentCard = document.getElementById('allotmentCard');
+        const maintenanceCard = document.getElementById('maintenanceCard');
+        if (allotmentCard) {
+            allotmentCard.style.display = 'block';
+        }
+        if (maintenanceCard) {
+            maintenanceCard.style.display = 'none';
+        }
+    }
+}
+
+function updateAllotmentDisplay(allotmentData) {
+    console.log('🏠 Updating allotment display with data:', allotmentData);
+    const allotmentCard = document.getElementById('allotmentCard');
+    const maintenanceCard = document.getElementById('maintenanceCard');
+    const roomDetails = document.getElementById('roomDetails');
+    
+    if (!allotmentCard) {
+        console.error('❌ Allotment card element not found!');
+        return;
+    }
+    
+    if (allotmentData.isAllocated) {
+        console.log('✅ Student is allocated - hiding allotment card, showing maintenance');
+        // Student is already allocated - hide allotment card and show room details
+        allotmentCard.style.display = 'none';
+        
+        // Show maintenance card for allocated students
+        if (maintenanceCard) {
+            maintenanceCard.style.display = 'block';
+        }
+        
+        // Update room information
+        document.getElementById('detailRoomNumber').textContent = allotmentData.roomNumber || 'Not Available';
+        document.getElementById('detailHostelName').textContent = allotmentData.hostelName || 'Not Available';
+        document.getElementById('roomType').textContent = allotmentData.roomType || '---';
+        document.getElementById('occupancy').textContent = allotmentData.occupancy || '---';
+        document.getElementById('floor').textContent = allotmentData.floor || '---';
+        
+        // Update quick stats
+        document.getElementById('roomNumber').textContent = allotmentData.roomNumber || '---';
+        document.getElementById('hostelName').textContent = allotmentData.hostelName || '---';
+        
+    } else {
+        console.log('📝 Student is not allocated - showing allotment card, hiding maintenance');
+        // Student is not allocated - show allotment card
+        allotmentCard.style.display = 'block';
+        
+        // Hide maintenance card for non-allocated students
+        if (maintenanceCard) {
+            maintenanceCard.style.display = 'none';
+        }
+        
+        if (allotmentData.applicationStatus) {
+            console.log('📋 Application status found:', allotmentData.applicationStatus);
+            // Application is in progress
+            const statusText = allotmentData.applicationStatus === 'pending' ? 'Application Pending' : 
+                              allotmentData.applicationStatus === 'processing' ? 'Under Review' : 'Not Allocated';
+            const statusClass = allotmentData.applicationStatus === 'pending' ? 'status-processing' : 'status-pending';
+            
+            const statusBadge = allotmentCard.querySelector('.status-badge');
+            const cardText = allotmentCard.querySelector('p');
+            const primaryBtn = allotmentCard.querySelector('.btn-primary');
+            
+            if (statusBadge) statusBadge.textContent = statusText;
+            if (statusBadge) statusBadge.className = `status-badge ${statusClass}`;
+            if (cardText) cardText.textContent = 'Your allotment application is being processed.';
+            if (primaryBtn) primaryBtn.textContent = 'View Application Status';
+        } else {
+            console.log('📝 No application status - showing default allotment card');
+        }
+    }
+}
+
+// Toggle academic field based on year selection
+function toggleAcademicField() {
+    const yearSelect = document.getElementById('year');
+    const academicScoreLabel = document.getElementById('academicScoreLabel');
+    const academicScoreInput = document.getElementById('academicScore');
+    const academicScoreHelp = document.getElementById('academicScoreHelp');
+    
+    if (yearSelect && academicScoreLabel && academicScoreInput && academicScoreHelp) {
+        const selectedYear = yearSelect.value;
+        
+        if (selectedYear === '1') {
+            academicScoreLabel.textContent = 'Entrance Exam Rank *';
+            academicScoreInput.placeholder = 'Enter your entrance exam rank';
+            academicScoreHelp.textContent = 'Enter your rank from entrance examination (e.g., JEE, NEET, etc.)';
+        } else if (selectedYear) {
+            academicScoreLabel.textContent = 'CGPA *';
+            academicScoreInput.placeholder = 'Enter your CGPA (e.g., 8.5)';
+            academicScoreHelp.textContent = 'Enter your current CGPA out of 10';
+        } else {
+            academicScoreLabel.textContent = 'Rank/CGPA *';
+            academicScoreInput.placeholder = 'Enter rank (for 1st year) or CGPA';
+            academicScoreHelp.textContent = 'For 1st year: Enter your rank. For other years: Enter your CGPA';
+        }
+    }
+}
+
+// Global functions for HTML
+function logout() {
+    Auth.logout();
 }

@@ -186,4 +186,72 @@ router.post('/verify-token', async (req, res) => {
   }
 });
 
+// POST /api/auth/change-password
+router.post('/change-password', isAuthenticated, [
+  body('currentPassword').notEmpty().withMessage('Current password is required'),
+  body('newPassword').isLength({ min: 6 }).withMessage('New password must be at least 6 characters long')
+], handleValidationErrors, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const userId = req.user.userId;
+
+    // For demo purposes, we'll simulate password validation
+    // In a real app, you'd verify against the database
+    if (currentPassword !== 'password123') {
+      return res.status(400).json({
+        success: false,
+        message: 'Current password is incorrect'
+      });
+    }
+
+    // Simulate successful password change
+    res.json({
+      success: true,
+      message: 'Password changed successfully'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Password change failed',
+      message: error.message
+    });
+  }
+});
+
+// PUT /api/auth/profile
+router.put('/profile', isAuthenticated, [
+  body('email').optional().isEmail().withMessage('Must be a valid email address'),
+  body('phone').optional().isLength({ min: 10 }).withMessage('Phone number must be at least 10 digits'),
+  body('fullName').optional().isLength({ min: 2 }).withMessage('Full name must be at least 2 characters'),
+  body('course').optional().isLength({ min: 1 }).withMessage('Course cannot be empty'),
+  body('year').optional().isIn(['1', '2', '3', '4']).withMessage('Year must be 1, 2, 3, or 4'),
+  body('studentId').optional().isLength({ min: 1 }).withMessage('Student ID cannot be empty')
+], handleValidationErrors, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const updateData = req.body;
+    
+    // For demo purposes, we'll just return success with the updated data
+    // In a real app, you'd update the database and return the updated user
+    const updatedUser = {
+      ...req.user,
+      ...updateData,
+      id: userId,
+      userId: userId
+    };
+    
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      data: { user: updatedUser }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Profile update failed',
+      message: error.message
+    });
+  }
+});
+
 module.exports = router;

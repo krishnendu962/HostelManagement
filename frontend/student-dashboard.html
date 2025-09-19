@@ -4,8 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Student Dashboard - Hostel Management System</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="static/css/style.css">
+    <link rel="stylesheet" href="static/css/modals.css">
 </head>
 <body>
     <div class="header">
@@ -15,106 +16,81 @@
                     <h1 style="margin: 0; font-size: 2.5rem;">Student Dashboard</h1>
                     <p style="margin: 0.5rem 0 0 0;">Welcome to your hostel management portal</p>
                 </div>
-                <div>
-                    <button id="logoutBtn" class="btn btn-secondary" style="width: auto; padding: 12px 24px;">
-                        Logout
-                    </button>
+                <div style="display: flex; gap: 1rem;">
+                    <button class="btn btn-primary" onclick="editProfile()">Edit Profile</button>
+                    <button class="btn btn-outline" onclick="logout()">Logout</button>
                 </div>
             </div>
         </div>
     </div>
 
     <div class="container">
-        <!-- User Welcome Card -->
-        <div class="card">
-            <div id="userInfo">
-                <!-- User info will be populated by JavaScript -->
-            </div>
-        </div>
-
-        <!-- Quick Stats -->
-        <div class="stats-grid">
-            <div class="stat-item">
-                <h4 id="roomNumber">---</h4>
-                <p>Room Number</p>
-            </div>
-            <div class="stat-item">
-                <h4 id="hostelName">---</h4>
-                <p>Hostel</p>
-            </div>
-            <div class="stat-item">
-                <h4 id="pendingRequests">0</h4>
-                <p>Pending Requests</p>
-            </div>
-            <div class="stat-item">
-                <h4 id="completedRequests">0</h4>
-                <p>Completed Requests</p>
-            </div>
-        </div>
-
-        <!-- Dashboard Content -->
-        <div class="dashboard">
-            <!-- Room Information Card -->
+        <div class="dashboard-grid">
+            <!-- Personal Information Card -->
             <div class="dashboard-card">
-                <h3>🏠 My Room Information</h3>
-                <div id="roomDetails">
-                    <p><strong>Room Number:</strong> <span id="detailRoomNumber">Not Assigned</span></p>
-                    <p><strong>Hostel:</strong> <span id="detailHostelName">Not Assigned</span></p>
-                    <p><strong>Room Type:</strong> <span id="roomType">---</span></p>
-                    <p><strong>Occupancy:</strong> <span id="occupancy">---</span></p>
-                    <p><strong>Floor:</strong> <span id="floor">---</span></p>
+                <h3>👤 Personal Information</h3>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="info-label">Name:</span>
+                        <span class="info-value" id="studentName">Loading...</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Student ID:</span>
+                        <span class="info-value" id="studentId">Loading...</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Course:</span>
+                        <span class="info-value" id="course">Loading...</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Year of Study:</span>
+                        <span class="info-value" id="yearOfStudy">Loading...</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Phone:</span>
+                        <span class="info-value" id="phone">Loading...</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Email:</span>
+                        <span class="info-value" id="email">Loading...</span>
+                    </div>
                 </div>
-                <button class="btn btn-primary" style="margin-top: 1rem;" onclick="viewRoomDetails()">
-                    View Full Details
-                </button>
+            </div>
+
+            <!-- Room Allotment Card (shown when no room assigned) -->
+            <div class="dashboard-card" id="allotmentCard" style="display: none;">
+                <h3>🏨 Room Allotment</h3>
+                <p>Apply for hostel room allocation. Complete your registration to secure accommodation.</p>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="openAllotmentModal()">Apply for Allotment</button>
+                </div>
+            </div>
+
+            <!-- Room Information Card (shown when room assigned) -->
+            <div class="dashboard-card" id="roomInfoCard">
+                <h3>🏠 Room Information</h3>
+                <div id="roomInfo">
+                    <!-- Room information will be populated here -->
+                </div>
+                <button class="btn btn-primary" onclick="openAllotmentModal()" id="allotmentBtn">Apply for Allotment</button>
             </div>
 
             <!-- Maintenance Requests Card -->
             <div class="dashboard-card">
                 <h3>🔧 Maintenance Requests</h3>
-                <p>Submit and track your maintenance requests</p>
-                <div id="recentRequests">
-                    <!-- Recent requests will be populated here -->
+                <div id="maintenanceRequests">
+                    <!-- Maintenance requests will be populated here -->
                 </div>
-                <button class="btn btn-primary" style="margin-top: 1rem;" onclick="newMaintenanceRequest()">
-                    New Request
-                </button>
-                <button class="btn btn-secondary" style="margin-top: 0.5rem;" onclick="viewAllRequests()">
-                    View All Requests
-                </button>
-            </div>
-
-            <!-- Notifications Card -->
-            <div class="dashboard-card">
-                <h3>🔔 Notifications</h3>
-                <div id="notifications">
-                    <!-- Notifications will be populated here -->
-                </div>
-                <button class="btn btn-secondary" style="margin-top: 1rem;" onclick="viewAllNotifications()">
-                    View All Notifications
-                </button>
-            </div>
-
-            <!-- Profile Management Card -->
-            <div class="dashboard-card">
-                <h3>👤 Profile Management</h3>
-                <p>Update your personal information and settings</p>
-                <button class="btn btn-primary" style="margin-top: 1rem;" onclick="editProfile()">
-                    Edit Profile
-                </button>
-                <button class="btn btn-secondary" style="margin-top: 0.5rem;" onclick="changePassword()">
-                    Change Password
-                </button>
             </div>
 
             <!-- Quick Actions Card -->
             <div class="dashboard-card">
                 <h3>⚡ Quick Actions</h3>
-                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                <div class="button-group">
                     <button class="btn btn-primary" onclick="reportIssue()">Report Issue</button>
-                    <button class="btn btn-secondary" onclick="viewHostelRules()">Hostel Rules</button>
-                    <button class="btn btn-secondary" onclick="contactWarden()">Contact Warden</button>
-                    <button class="btn btn-secondary" onclick="viewFacilities()">View Facilities</button>
+                    <button class="btn btn-primary" onclick="viewHostelRules()">Hostel Rules</button>
+                    <button class="btn btn-primary" onclick="contactWarden()">Contact Warden</button>
+                    <button class="btn btn-primary" onclick="viewFacilities()">View Facilities</button>
                 </div>
             </div>
 
@@ -124,6 +100,405 @@
                 <div id="recentActivity">
                     <!-- Recent activity will be populated here -->
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Allotment Registration Modal -->
+    <div id="allotmentModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🏨 Hostel Allotment Registration</h3>
+                <span class="close" onclick="closeAllotmentModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="allotmentForm">
+                    <div class="form-section">
+                        <h4>Personal Information</h4>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="studentId" class="form-label">Student ID *</label>
+                                <input type="text" id="studentId" name="studentId" class="form-input" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label for="studentName" class="form-label">Full Name *</label>
+                                <input type="text" id="studentName" name="studentName" class="form-input" readonly>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="course" class="form-label">Course *</label>
+                                <input type="text" id="course" name="course" class="form-input" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="yearOfStudy" class="form-label">Year of Study *</label>
+                                <select id="yearOfStudy" name="yearOfStudy" class="form-select" required onchange="toggleAcademicField()">
+                                    <option value="">Select Year</option>
+                                    <option value="1">1st Year</option>
+                                    <option value="2">2nd Year</option>
+                                    <option value="3">3rd Year</option>
+                                    <option value="4">4th Year</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="phoneNumber" class="form-label">Phone Number *</label>
+                                <input type="tel" id="phoneNumber" name="phoneNumber" class="form-input" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="academicScore" class="form-label" id="academicScoreLabel">Rank/CGPA *</label>
+                                <input type="text" id="academicScore" name="academicScore" class="form-input" placeholder="Enter rank (for 1st year) or CGPA" required>
+                                <small id="academicScoreHelp" class="form-text">For 1st year: Enter your entrance exam rank</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h4>Emergency Contact</h4>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="emergencyContactName" class="form-label">Emergency Contact Name *</label>
+                                <input type="text" id="emergencyContactName" name="emergencyContactName" class="form-input" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="emergencyContactPhone" class="form-label">Emergency Contact Phone *</label>
+                                <input type="tel" id="emergencyContactPhone" name="emergencyContactPhone" class="form-input" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="relationship" class="form-label">Relationship *</label>
+                                <select id="relationship" name="relationship" class="form-select" required>
+                                    <option value="">Select Relationship</option>
+                                    <option value="parent">Parent</option>
+                                    <option value="guardian">Guardian</option>
+                                    <option value="sibling">Sibling</option>
+                                    <option value="relative">Relative</option>
+                                    <option value="friend">Friend</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <!-- Empty to maintain grid layout -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h4>Accommodation Preferences</h4>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="hostelPreference" class="form-label">Preferred Hostel *</label>
+                                <select id="hostelPreference" name="hostelPreference" class="form-select" required>
+                                    <option value="">Select Hostel</option>
+                                    <option value="boys-hostel-a">Boys Hostel A</option>
+                                    <option value="boys-hostel-b">Boys Hostel B</option>
+                                    <option value="girls-hostel-a">Girls Hostel A</option>
+                                    <option value="girls-hostel-b">Girls Hostel B</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="roomType" class="form-label">Room Type *</label>
+                                <select id="roomType" name="roomType" class="form-select" required>
+                                    <option value="">Select Room Type</option>
+                                    <option value="single">Single Occupancy</option>
+                                    <option value="double">Double Occupancy</option>
+                                    <option value="triple">Triple Occupancy</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="floorPreference" class="form-label">Floor Preference</label>
+                                <select id="floorPreference" name="floorPreference" class="form-select">
+                                    <option value="">No Preference</option>
+                                    <option value="ground">Ground Floor</option>
+                                    <option value="1">1st Floor</option>
+                                    <option value="2">2nd Floor</option>
+                                    <option value="3">3rd Floor</option>
+                                    <option value="4">4th Floor</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="specialRequirements" class="form-label">Special Requirements</label>
+                                <select id="specialRequirements" name="specialRequirements" class="form-select">
+                                    <option value="">None</option>
+                                    <option value="medical">Medical Needs</option>
+                                    <option value="accessibility">Accessibility</option>
+                                    <option value="dietary">Dietary Requirements</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="additionalNotes" class="form-label">Additional Notes (Optional)</label>
+                            <textarea id="additionalNotes" name="additionalNotes" class="form-textarea" placeholder="Any specific requirements or preferences..."></textarea>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <div class="form-checkbox-container">
+                            <input type="checkbox" id="agreeTerms" name="agreeTerms" class="form-checkbox" required>
+                            <label for="agreeTerms" class="form-label">I agree to the hostel terms and conditions *</label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="closeAllotmentModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary" form="allotmentForm">Submit Application</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- General Modal -->
+    <div id="generalModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="generalModalTitle">Information</h3>
+                <span class="close" onclick="closeGeneralModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="generalModalContent">
+                    <!-- Content will be populated dynamically -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="closeGeneralModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Room Details Modal -->
+    <div id="roomDetailsModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🏠 Room Details</h3>
+                <span class="close" onclick="closeRoomDetailsModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="roomDetailsContent">
+                    <!-- Room details will be populated here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="closeRoomDetailsModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Profile Modal -->
+    <div id="editProfileModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>✏️ Edit Profile</h3>
+                <span class="close" onclick="closeEditProfileModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="editProfileForm">
+                    <div class="form-section">
+                        <h4>Personal Information</h4>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="editUsername" class="form-label">Username *</label>
+                                <input type="text" id="editUsername" name="username" class="form-input" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label for="editEmail" class="form-label">Email *</label>
+                                <input type="email" id="editEmail" name="email" class="form-input" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="editPhone" class="form-label">Phone Number *</label>
+                                <input type="tel" id="editPhone" name="phone" class="form-input" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="editFullName" class="form-label">Full Name</label>
+                                <input type="text" id="editFullName" name="fullName" class="form-input">
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="closeEditProfileModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary" form="editProfileForm">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Change Password Modal -->
+    <div id="changePasswordModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🔐 Change Password</h3>
+                <span class="close" onclick="closePasswordModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="changePasswordForm">
+                    <div class="form-group">
+                        <label for="currentPassword" class="form-label">Current Password *</label>
+                        <div class="password-container">
+                            <input type="password" id="currentPassword" name="currentPassword" class="form-input" required>
+                            <button type="button" class="password-toggle" onclick="togglePasswordVisibility('currentPassword')">
+                                <svg class="eye-icon eye-open" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                    <circle cx="12" cy="12" r="3"/>
+                                </svg>
+                                <svg class="eye-icon eye-closed" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
+                                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                                    <line x1="1" y1="1" x2="23" y2="23"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="newPassword" class="form-label">New Password *</label>
+                        <div class="password-container">
+                            <input type="password" id="newPassword" name="newPassword" class="form-input" required>
+                            <button type="button" class="password-toggle" onclick="togglePasswordVisibility('newPassword')">
+                                <svg class="eye-icon eye-open" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                    <circle cx="12" cy="12" r="3"/>
+                                </svg>
+                                <svg class="eye-icon eye-closed" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
+                                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                                    <line x1="1" y1="1" x2="23" y2="23"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="confirmPassword" class="form-label">Confirm New Password *</label>
+                        <div class="password-container">
+                            <input type="password" id="confirmPassword" name="confirmPassword" class="form-input" required>
+                            <button type="button" class="password-toggle" onclick="togglePasswordVisibility('confirmPassword')">
+                                <svg class="eye-icon eye-open" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                    <circle cx="12" cy="12" r="3"/>
+                                </svg>
+                                <svg class="eye-icon eye-closed" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
+                                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                                    <line x1="1" y1="1" x2="23" y2="23"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="closePasswordModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary" form="changePasswordForm">Change Password</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- General Purpose Modal -->
+    <div id="generalModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="generalModalTitle">Modal Title</h3>
+                <span class="close" onclick="closeGeneralModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="generalModalContent">
+                    <!-- Dynamic content will be inserted here -->
+                </div>
+            </div>
+            <div class="modal-footer" id="generalModalActions">
+                <!-- Dynamic action buttons will be inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Profile Modal -->
+    <div id="editProfileModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>✏️ Edit Profile</h3>
+                <span class="close" onclick="closeEditProfileModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="editProfileForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editUsername" class="form-label">Username *</label>
+                            <input type="text" id="editUsername" name="username" class="form-input" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editEmail" class="form-label">Email *</label>
+                            <input type="email" id="editEmail" name="email" class="form-input" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editPhone" class="form-label">Phone *</label>
+                            <input type="tel" id="editPhone" name="phone" class="form-input" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editFullName" class="form-label">Full Name *</label>
+                            <input type="text" id="editFullName" name="fullName" class="form-input" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editCourse" class="form-label">Course *</label>
+                            <input type="text" id="editCourse" name="course" class="form-input" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editYear" class="form-label">Year of Study *</label>
+                            <select id="editYear" name="year" class="form-input" required>
+                                <option value="">Select Year</option>
+                                <option value="1">1st Year</option>
+                                <option value="2">2nd Year</option>
+                                <option value="3">3rd Year</option>
+                                <option value="4">4th Year</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editStudentId" class="form-label">Student ID *</label>
+                            <input type="text" id="editStudentId" name="studentId" class="form-input" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editEmergencyName" class="form-label">Emergency Contact Name</label>
+                            <input type="text" id="editEmergencyName" name="emergencyName" class="form-input">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editEmergencyPhone" class="form-label">Emergency Contact Phone</label>
+                            <input type="tel" id="editEmergencyPhone" name="emergencyPhone" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label for="editEmergencyRelation" class="form-label">Emergency Contact Relation</label>
+                            <input type="text" id="editEmergencyRelation" name="emergencyRelation" class="form-input">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="closeEditProfileModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary" form="editProfileForm">Update Profile</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Room Details Modal -->
+    <div id="roomDetailsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🏠 Room Details</h3>
+                <span class="close" onclick="closeRoomDetailsModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="roomDetailsContent">
+                    <!-- Room details will be populated here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="closeRoomDetailsModal()">Close</button>
             </div>
         </div>
     </div>

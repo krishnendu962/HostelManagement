@@ -1,0 +1,507 @@
+/* Login and Register Page Styles */
+
+/* Reset and Base Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background: #f8f9fa;
+    line-height: 1.6;
+    color: #333;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* Header Styles */
+.header {
+    background: linear-gradient(135deg, #2980b9 0%, #3498db 100%);
+    padding: 2rem 0;
+    margin-bottom: 3rem;
+    box-shadow: 0 4px 20px rgba(52, 152, 219, 0.3);
+}
+
+.header h1 {
+    text-align: center;
+    color: white !important;
+    font-size: 3rem;
+    font-weight: 700;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    margin: 0 0 0.5rem 0;
+    display: block;
+    visibility: visible;
+}
+
+.header p {
+    text-align: center;
+    color: rgba(255, 255, 255, 0.9) !important;
+    margin: 0.5rem 0 0 0;
+    font-size: 1.1rem;
+    font-weight: 300;
+    display: block;
+    visibility: visible;
+}
+
+/* Card Styles */
+.card {
+    background: white;
+    border-radius: 20px;
+    padding: 3rem;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(52, 152, 219, 0.1);
+    max-width: 450px;
+    margin: 2rem auto;
+    position: relative;
+    overflow: hidden;
+}
+
+.card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #3498db, #2980b9);
+}
+
+.card h2 {
+    text-align: center;
+    margin-bottom: 2rem;
+    color: #2c3e50;
+    font-weight: 600;
+    font-size: 1.75rem;
+}
+
+/* Form Styles */
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: #2c3e50;
+    font-size: 0.95rem;
+}
+
+.form-control {
+    width: 100%;
+    padding: 0.875rem 1rem;
+    border: 2px solid #e1e8ed;
+    border-radius: 10px;
+    font-size: 1rem;
+    background: #fff;
+    transition: all 0.3s ease;
+    box-sizing: border-box;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+    background: #fff;
+}
+
+.form-control::placeholder {
+    color: #94a3b8;
+    font-weight: 400;
+}
+
+/* Password Container */
+.password-container {
+    position: relative;
+}
+
+.password-toggle {
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #6b7280;
+    padding: 0.25rem;
+    border-radius: 4px;
+    transition: color 0.2s ease;
+}
+
+.password-toggle:hover {
+    color: #3498db;
+}
+
+.eye-icon {
+    width: 20px;
+    height: 20px;
+}
+
+/* Button Styles */
+.btn {
+    border: none;
+    padding: 0.875rem 1.5rem;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 1rem;
+    text-decoration: none;
+    display: inline-block;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    transform: translateY(0);
+    text-align: center;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+    border: none;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #2980b9 0%, #21618c 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
+}
+
+.btn-outline {
+    background: white;
+    color: #3498db;
+    border: 2px solid #3498db;
+    font-weight: 500;
+    box-shadow: 0 2px 8px rgba(52, 152, 219, 0.2);
+}
+
+.btn-outline:hover {
+    background: #3498db;
+    color: white;
+    border-color: #3498db;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+}
+
+/* Text Center */
+.text-center {
+    text-align: center;
+}
+
+.text-center p {
+    margin: 0;
+    color: #6b7280;
+}
+
+.text-center a {
+    color: #3498db;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s ease;
+}
+
+.text-center a:hover {
+    color: #2980b9;
+    text-decoration: underline;
+}
+
+/* Alert Styles */
+.alert {
+    padding: 0.875rem 1rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    font-size: 0.95rem;
+    border-left: 4px solid;
+}
+
+.alert-error {
+    background: #fef2f2;
+    color: #dc2626;
+    border-color: #dc2626;
+}
+
+.alert-success {
+    background: #f0fdf4;
+    color: #16a34a;
+    border-color: #16a34a;
+}
+
+.alert-info {
+    background: #eff6ff;
+    color: #2563eb;
+    border-color: #2563eb;
+}
+
+/* Spinner */
+.spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top: 2px solid white;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-right: 0.5rem;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .container {
+        padding: 15px;
+    }
+    
+    .header {
+        padding: 1.5rem 0;
+        margin-bottom: 2rem;
+    }
+    
+    .header h1 {
+        font-size: 2rem;
+    }
+    
+    .header p {
+        font-size: 1rem;
+    }
+    
+    .card {
+        padding: 2rem 1.5rem;
+        margin: 1rem auto;
+        max-width: 100%;
+    }
+    
+    .card h2 {
+        font-size: 1.5rem;
+    }
+    
+    .role-info-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .header h1 {
+        font-size: 1.75rem;
+    }
+    
+    .card {
+        padding: 1.5rem 1rem;
+    }
+}
+
+/* Role Information Styling */
+.role-info {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.role-info p {
+    margin: 0;
+    padding: 1rem;
+    border-radius: 12px;
+    border-left: 4px solid;
+    background: #f8f9fa;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    transition: all 0.3s ease;
+}
+
+.role-info p:nth-child(1) {
+    border-left-color: #3498db;
+    background: linear-gradient(135deg, #e3f2fd 0%, #f8f9fa 100%);
+}
+
+.role-info p:nth-child(1):hover {
+    background: linear-gradient(135deg, #bbdefb 0%, #e3f2fd 100%);
+    transform: translateX(5px);
+    box-shadow: 0 4px 15px rgba(52, 152, 219, 0.2);
+}
+
+.role-info p:nth-child(2) {
+    border-left-color: #27ae60;
+    background: linear-gradient(135deg, #e8f5e8 0%, #f8f9fa 100%);
+}
+
+.role-info p:nth-child(2):hover {
+    background: linear-gradient(135deg, #c8e6c9 0%, #e8f5e8 100%);
+    transform: translateX(5px);
+    box-shadow: 0 4px 15px rgba(39, 174, 96, 0.2);
+}
+
+.role-info p:nth-child(3) {
+    border-left-color: #e74c3c;
+    background: linear-gradient(135deg, #ffebee 0%, #f8f9fa 100%);
+}
+
+.role-info p:nth-child(3):hover {
+    background: linear-gradient(135deg, #ffcdd2 0%, #ffebee 100%);
+    transform: translateX(5px);
+    box-shadow: 0 4px 15px rgba(231, 76, 60, 0.2);
+}
+
+.role-info p strong {
+    color: #2c3e50;
+    font-weight: 600;
+    display: inline-block;
+    margin-bottom: 0.25rem;
+}
+
+.role-info p:nth-child(1) strong {
+    color: #2980b9;
+}
+
+.role-info p:nth-child(2) strong {
+    color: #27ae60;
+}
+
+.role-info p:nth-child(3) strong {
+    color: #c0392b;
+}
+
+/* Role Information Card Header */
+.card h3 {
+    color: #2980b9;
+    font-weight: 600;
+    font-size: 1.4rem;
+    margin-bottom: 1.5rem;
+    text-align: center;
+    position: relative;
+}
+
+.card h3::after {
+    content: '';
+    position: absolute;
+    bottom: -0.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 3px;
+    background: linear-gradient(90deg, #3498db, #2980b9);
+    border-radius: 2px;
+}
+
+/* Enhanced Role Info Grid (Alternative Layout) */
+.role-info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1rem;
+}
+
+.role-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    border: 2px solid transparent;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.role-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    transition: all 0.3s ease;
+}
+
+.role-card.student {
+    border-color: rgba(52, 152, 219, 0.2);
+}
+
+.role-card.student::before {
+    background: linear-gradient(90deg, #3498db, #2980b9);
+}
+
+.role-card.student:hover {
+    border-color: #3498db;
+    box-shadow: 0 8px 25px rgba(52, 152, 219, 0.15);
+    transform: translateY(-3px);
+}
+
+.role-card.warden {
+    border-color: rgba(39, 174, 96, 0.2);
+}
+
+.role-card.warden::before {
+    background: linear-gradient(90deg, #27ae60, #2ecc71);
+}
+
+.role-card.warden:hover {
+    border-color: #27ae60;
+    box-shadow: 0 8px 25px rgba(39, 174, 96, 0.15);
+    transform: translateY(-3px);
+}
+
+.role-card.admin {
+    border-color: rgba(231, 76, 60, 0.2);
+}
+
+.role-card.admin::before {
+    background: linear-gradient(90deg, #e74c3c, #c0392b);
+}
+
+.role-card.admin:hover {
+    border-color: #e74c3c;
+    box-shadow: 0 8px 25px rgba(231, 76, 60, 0.15);
+    transform: translateY(-3px);
+}
+
+.role-card h4 {
+    margin: 0 0 0.75rem 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.role-card.student h4 {
+    color: #2980b9;
+}
+
+.role-card.warden h4 {
+    color: #27ae60;
+}
+
+.role-card.admin h4 {
+    color: #c0392b;
+}
+
+.role-card p {
+    margin: 0;
+    color: #555;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+/* Role Selection Enhancement */
+.form-group select.form-control {
+    background-image: url('data:image/svg+xml;charset=US-ASCII,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 5"><path fill="%23666" d="M2 0L0 2h4zm0 5L0 3h4z"/></svg>');
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+    background-size: 12px;
+    padding-right: 2.5rem;
+    appearance: none;
+}
+
+.form-group select.form-control:focus {
+    background-image: url('data:image/svg+xml;charset=US-ASCII,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 5"><path fill="%233498db" d="M2 0L0 2h4zm0 5L0 3h4z"/></svg>');
+}
