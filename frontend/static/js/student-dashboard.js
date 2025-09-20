@@ -493,24 +493,28 @@ const StudentDashboard = {
 
     async loadRecentActivity() {
         try {
-            const mockActivity = [
-                'Submitted maintenance request for AC repair',
-                'Updated profile information',
-                'Logged in to dashboard',
-                'Viewed hostel rules'
-            ];
-
+            const response = await fetch(apiUrl('/api/activity/recent'), {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${TokenManager.getToken()}`
+                }
+            });
+            let activities = [];
+            if (response.ok) {
+                const result = await response.json();
+                activities = result.activities || [];
+            } else {
+                activities = ['Could not load recent activity.'];
+            }
             const activityDiv = document.getElementById('recentActivity');
             if (activityDiv) {
-                const activityHTML = mockActivity.map((activity, index) => `
+                const activityHTML = activities.map((activity, index) => `
                     <div style="padding: 0.5rem 0; border-bottom: 1px solid #eee;">
                         <span style="color: #666; font-size: 0.9rem;">• ${activity}</span>
                     </div>
                 `).join('');
-                
                 activityDiv.innerHTML = activityHTML;
             }
-
         } catch (error) {
             console.error('Error loading recent activity:', error);
         }
@@ -1310,37 +1314,58 @@ function reportIssue() {
     setTimeout(() => {
         const reportForm = document.getElementById('reportIssueForm');
         if (reportForm) {
-            reportForm.addEventListener('submit', (e) => {
+            reportForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const category = document.getElementById('issueCategory').value;
                 const description = document.getElementById('issueDescription').value;
                 const location = document.getElementById('issueLocation').value;
                 const anonymous = document.getElementById('anonymousReport').checked;
-                
                 if (category && description && location) {
-                    const reportId = `RPT${Date.now()}`;
-                    const successHtml = `
-                        <div class="success-container">
-                            <div class="success-icon">✅</div>
-                            <h4 class="success-title">Report Submitted Successfully!</h4>
-                            <div class="success-details">
-                                <p><strong>Report ID:</strong> #${reportId}</p>
-                                <p><strong>Status:</strong> Under Review</p>
-                                <p><strong>Expected Response:</strong> Within 24-48 hours</p>
-                            </div>
-                            ${anonymous ? 
-                                '<p style="color: #6c757d;">Your identity will remain anonymous throughout the investigation.</p>' : 
-                                '<p style="color: #6c757d;">You may be contacted for follow-up if additional information is needed.</p>'
-                            }
-                            <button onclick="closeGeneralModal()" class="btn btn-success">Close</button>
-                        </div>
-                    `;
-                    showGeneralModal('✅ Report Submitted', successHtml);
+                    try {
+                        const response = await fetch(apiUrl('/api/issues/report'), {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${TokenManager.getToken()}`
+                            },
+                            body: JSON.stringify({
+                                category,
+                                description,
+                                location,
+                                anonymous
+                            })
+                        });
+                        if (response.ok) {
+                            const result = await response.json();
+                            const reportId = result.reportId || `RPT${Date.now()}`;
+                            const successHtml = `
+                                <div class="success-container">
+                                    <div class="success-icon">✅</div>
+                                    <h4 class="success-title">Report Submitted Successfully!</h4>
+                                    <div class="success-details">
+                                        <p><strong>Report ID:</strong> #${reportId}</p>
+                                        <p><strong>Status:</strong> Under Review</p>
+                                        <p><strong>Expected Response:</strong> Within 24-48 hours</p>
+                                    </div>
+                                    ${anonymous ? 
+                                        '<p style="color: #6c757d;">Your identity will remain anonymous throughout the investigation.</p>' : 
+                                        '<p style="color: #6c757d;">You may be contacted for follow-up if additional information is needed.</p>'
+                                    }
+                                    <button onclick="closeGeneralModal()" class="btn btn-success">Close</button>
+                                </div>
+                            `;
+                            showGeneralModal('✅ Report Submitted', successHtml);
+                        } else {
+                            const errorMsg = await response.text();
+                            alert('Error submitting report: ' + errorMsg);
+                        }
+                    } catch (err) {
+                        alert('Network error submitting report. Please try again.');
+                    }
                 } else {
                     // Show validation error within modal
                     const existingError = document.querySelector('.error-message');
                     if (existingError) existingError.remove();
-                    
                     const errorDiv = document.createElement('div');
                     errorDiv.className = 'error-message';
                     errorDiv.style.cssText = 'background: #f8d7da; color: #721c24; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border-left: 4px solid #dc3545;';
@@ -1708,30 +1733,12 @@ async function loadHostelOptions() {
     try {
         console.log('🏨 Loading hostel options...');
         const response = await fetch(apiUrl('/api/allotment/hostels'), {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${TokenManager.getToken()}`
-            }
+            method: 'GET'
         });
-
         if (response.ok) {
             const hostels = await response.json();
-            const hostelSelect = document.getElementById('hostelPreference');
-            
-            // Clear existing options except the first "Select Hostel" option
-            while (hostelSelect.children.length > 1) {
-                hostelSelect.removeChild(hostelSelect.lastChild);
-            }
-            
-            // Add hostel options
-            hostels.forEach(hostel => {
-                const option = document.createElement('option');
-                option.value = hostel.name; // Use name for now to match current backend logic
-                option.textContent = `${hostel.name} (${hostel.type}) - ${hostel.availableRooms} available rooms`;
-                hostelSelect.appendChild(option);
-            });
-            
             console.log(`✅ Loaded ${hostels.length} hostel options`);
+            // You can add code here to update the UI with hostel options
         } else {
             console.error('❌ Failed to load hostels:', response.status);
             dashShowAlert('Failed to load hostel options', 'error');
