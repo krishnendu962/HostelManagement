@@ -25,6 +25,9 @@ body {
     grid-template-columns: 1fr 1fr;
     gap: 1rem;
     margin-top: 1.5rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1rem;
 }
 
 .info-item {
@@ -36,7 +39,9 @@ body {
     border-left: 3px solid #3498db;
     transition: all 0.3s ease;
     position: relative;
-    overflow: hidden;
+    overflow: visible;
+    min-width: 260px;
+    max-width: 100%;
 }
 
 .info-item::before {
@@ -56,8 +61,9 @@ body {
 }
 
 .info-item:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(52, 152, 219, 0.15);
+    transform: scale(1.08) translateY(-2px);
+    z-index: 2;
+    box-shadow: 0 12px 32px rgba(52, 152, 219, 0.18);
     background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
 }
 
@@ -75,6 +81,8 @@ body {
     color: #2c3e50;
     font-weight: 600;
     min-height: 1.5rem;
+    word-break: break-all;
+    white-space: normal;
 }
 
 /* Button Group Styles */

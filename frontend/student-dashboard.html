@@ -128,21 +128,21 @@
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="studentId" class="form-label">Student ID *</label>
-                                <input type="text" id="studentId" name="studentId" class="form-input" required placeholder="Enter your student ID">
+                                <input type="text" id="studentId" name="studentId" class="form-input" required placeholder="Enter your student ID" style="color: #000 !important; background: #fff !important;">
                             </div>
                             <div class="form-group">
                                 <label for="studentName" class="form-label">Full Name *</label>
-                                <input type="text" id="studentName" name="studentName" class="form-input" required placeholder="Enter your full name">
+                                <input type="text" id="studentName" name="studentName" class="form-input" required placeholder="Enter your full name" style="color: #000 !important; background: #fff !important;">
                             </div>
                         </div>
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="course" class="form-label">Course *</label>
-                                <input type="text" id="course" name="course" class="form-input" required>
+                                <input type="text" id="course" name="course" class="form-input" required style="color: #000 !important; background: #fff !important;">
                             </div>
                             <div class="form-group">
                                 <label for="yearOfStudy" class="form-label">Year of Study *</label>
-                                <select id="yearOfStudy" name="yearOfStudy" class="form-select" required onchange="toggleAcademicField()">
+                                <select id="yearOfStudy" name="yearOfStudy" class="form-select" required onchange="toggleAcademicField()" style="color: #000 !important; background: #fff !important;">
                                     <option value="">Select Year</option>
                                     <option value="1">1st Year</option>
                                     <option value="2">2nd Year</option>
@@ -157,9 +157,18 @@
                                 <input type="tel" id="phoneNumber" name="phoneNumber" class="form-input" required>
                             </div>
                             <div class="form-group">
+                                <label for="studentEmail" class="form-label">Email Address *</label>
+                                <input type="email" id="studentEmail" name="studentEmail" class="form-input" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
                                 <label for="academicScore" class="form-label" id="academicScoreLabel">Rank/CGPA *</label>
                                 <input type="text" id="academicScore" name="academicScore" class="form-input" placeholder="Enter rank (for 1st year) or CGPA" required>
                                 <small id="academicScoreHelp" class="form-text">For 1st year: Enter your entrance exam rank</small>
+                            </div>
+                            <div class="form-group">
+                                <!-- Empty to maintain grid layout -->
                             </div>
                         </div>
                     </div>

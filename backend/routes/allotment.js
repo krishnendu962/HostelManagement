@@ -178,7 +178,7 @@ router.post('/register', authenticateToken, async (req, res) => {
         }
         
         // Determine performance type and value based on year
-        const performanceType = parseInt(yearOfStudy) === 1 ? 'keam_rank' : 'sgpa';
+    const performanceType = parseInt(yearOfStudy) === 1 ? 'keam_rank' : 'cgpa';
         const performanceValue = parseFloat(academicScore);
         
         // Generate unique application ID

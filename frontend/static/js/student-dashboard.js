@@ -1,84 +1,8 @@
-// Student Dashboard JavaScript
-
 // Ensure API calls work when page is opened via file:// by prefixing localhost
 const API_ORIGIN = (typeof window !== 'undefined' && window.location && window.location.protocol === 'file:')
     ? 'http://localhost:3000'
     : '';
 const apiUrl = (path) => `${API_ORIGIN}${path}`;
-
-// HostelAPI object to handle API calls
-const HostelAPI = {
-    async getAllotmentStatus() {
-        try {
-            const response = await fetch(apiUrl('/api/allotment/status'), {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${TokenManager.getToken()}`
-                }
-            });
-            
-            if (response.ok) {
-                return await response.json();
-            } else {
-                throw new Error(`API Error: ${response.status}`);
-            }
-        } catch (error) {
-            console.error('Error fetching allotment status:', error);
-            throw error;
-        }
-    },
-
-    async changePassword(currentPassword, newPassword) {
-        try {
-            const response = await fetch(apiUrl('/api/auth/change-password'), {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${TokenManager.getToken()}`
-                },
-                body: JSON.stringify({
-                    currentPassword,
-                    newPassword
-                })
-            });
-            
-            const result = await response.json();
-            
-            if (response.ok) {
-                return { success: true, message: result.message };
-            } else {
-                return { success: false, message: result.message || 'Password change failed' };
-            }
-        } catch (error) {
-            console.error('Error changing password:', error);
-            return { success: false, message: 'Network error occurred' };
-        }
-    },
-
-    async submitAllotmentApplication(applicationData) {
-        try {
-            const response = await fetch(apiUrl('/api/allotment/register'), {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${TokenManager.getToken()}`
-                },
-                body: JSON.stringify(applicationData)
-            });
-            
-            const result = await response.json();
-            
-            if (response.ok) {
-                return { success: true, message: result.message, applicationId: result.applicationId };
-            } else {
-                return { success: false, message: result.message || 'Application submission failed' };
-            }
-        } catch (error) {
-            console.error('Error submitting application:', error);
-            return { success: false, message: 'Network error occurred' };
-        }
-    }
-};
 
 // Initialize the student dashboard
 document.addEventListener('DOMContentLoaded', async () => {
@@ -112,7 +36,6 @@ function checkAuthentication() {
 // Check if student profile exists
 async function checkStudentProfile() {
     try {
-        console.log('🔍 Checking student profile...');
         const response = await fetch(apiUrl('/api/auth/student-profile'), {
             method: 'GET',
             headers: {
@@ -125,13 +48,11 @@ async function checkStudentProfile() {
             if (result.success && result.data.profile) {
                 if (result.data.profile.isStudent === false) {
                     // Student profile doesn't exist
-                    console.log('📝 Student profile not found, redirecting to setup...');
                     alert('⚠️ Please complete your student profile to access hostel services.');
                     window.location.href = 'student-profile-setup.html';
                     return false;
                 } else {
                     // Profile exists
-                    console.log('✅ Student profile verified');
                     return true;
                 }
             }
@@ -139,7 +60,6 @@ async function checkStudentProfile() {
         
         if (response.status === 404) {
             // User not found
-            console.log('❌ User not found');
             alert('❌ User account not found. Please contact administration.');
             window.location.href = 'login.html';
             return false;
@@ -214,11 +134,9 @@ const StudentDashboard = {
                 const result = await response.json();
                 if (result.success && result.data.profile) {
                     const profile = result.data.profile;
-                    console.log('📋 Loaded student profile from database:', profile);
                     
                     if (profile.isStudent === false) {
                         // User exists but is not set up as a student
-                        console.log('ℹ️ User is not registered as a student');
                         const updateElement = (id, value) => {
                             const element = document.getElementById(id);
                             if (element) element.textContent = value || 'Not available';
@@ -255,11 +173,9 @@ const StudentDashboard = {
                 }
             } else {
                 // API call failed, but not necessarily an error - could be authentication issue
-                console.log('⚠️ Failed to fetch student profile from API, using fallback data');
             }
             
             // Fallback to TokenManager data if API fails
-            console.log('ℹ️ Using fallback data from TokenManager');
             const user = TokenManager.getUser();
             
             if (user) {
@@ -337,7 +253,6 @@ const StudentDashboard = {
                     const result = await response.json();
                     if (result.success && result.data.hasAllocation) {
                         const allocation = result.data.allocation;
-                        console.log('🏠 Loaded room allocation from database:', allocation);
                         
                         // Update room info with real data
                         document.getElementById('detailRoomNumber').textContent = allocation.roomNumber;
@@ -347,7 +262,6 @@ const StudentDashboard = {
                         document.getElementById('floor').textContent = `Floor ${allocation.floor}`;
                     } else {
                         // No allocation found - this is normal, not an error
-                        console.log('ℹ️ No room allocation found for student');
                         roomInfoDiv.innerHTML = `
                             <div class="info-message" style="text-align: center; padding: 20px; background: #f8f9fa; border-radius: 8px; border: 1px solid #dee2e6;">
                                 <div style="font-size: 2rem; margin-bottom: 10px;">🏠</div>
@@ -411,7 +325,6 @@ const StudentDashboard = {
                     const result = await response.json();
                     if (result.success && result.data.requests) {
                         const requests = result.data.requests;
-                        console.log('🔧 Loaded maintenance requests from database:', requests);
                         
                         if (requests.length === 0) {
                             // No requests found
@@ -486,7 +399,6 @@ const StudentDashboard = {
 
     async loadNotifications() {
         try {
-            console.log('🔍 Starting to load notifications...');
             const notificationsDiv = document.getElementById('notifications');
             if (notificationsDiv) {
                 // Show loading state
@@ -496,7 +408,6 @@ const StudentDashboard = {
                     </div>
                 `;
                 
-                console.log('📡 Making API call to /api/notifications/my-notifications');
                 // Fetch notifications from API
                 const response = await fetch(apiUrl('/api/notifications/my-notifications'), {
                     method: 'GET',
@@ -505,15 +416,12 @@ const StudentDashboard = {
                     }
                 });
                 
-                console.log('📡 API response status:', response.status, response.ok);
                 
                 if (response.ok) {
                     const result = await response.json();
-                    console.log('📡 API response data:', result);
                     
                     if (result.success && result.data.notifications) {
                         const notifications = result.data.notifications;
-                        console.log('📢 Loaded notifications from database:', notifications);
                         
                         if (notifications.length === 0) {
                             notificationsDiv.innerHTML = '<p style="color: #666; font-style: italic;">No new notifications</p>';
@@ -611,16 +519,13 @@ const StudentDashboard = {
 
 // Dashboard Action Functions
 function viewRoomDetails() {
-    console.log('🔍 viewRoomDetails function called');
     const roomNumber = document.getElementById('detailRoomNumber').textContent;
     const hostelName = document.getElementById('detailHostelName').textContent;
     
-    console.log('Room Number:', roomNumber, 'Hostel Name:', hostelName);
     
     let roomDetailsHTML = '';
     
     if (roomNumber === 'Not Assigned') {
-        console.log('Showing no room assigned message');
         roomDetailsHTML = `
             <div style="text-align: center; padding: 2rem;">
                 <div style="font-size: 3rem; margin-bottom: 1rem;">🏠</div>
@@ -639,7 +544,6 @@ function viewRoomDetails() {
             </div>
         `;
     } else {
-        console.log('Showing room details');
         roomDetailsHTML = `
             <div style="text-align: left;">
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
@@ -1684,16 +1588,108 @@ function viewFacilities() {
 function openAllotmentModal() {
     const modal = document.getElementById('allotmentModal');
     if (modal) {
-        // Pre-fill user information
-        prefillUserInfo();
+        modal.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+        
+        // Auto-fill form fields from dashboard data
+        setTimeout(() => {
+            copyDashboardToForm();
+        }, 300);
         
         // Load hostels from database
         loadHostelOptions();
-        
-        modal.style.display = 'block';
-        document.body.style.overflow = 'hidden';
     }
 }
+
+// Simple auto-fill using only database data
+// Copy data from dashboard spans to form inputs
+function copyDashboardToForm() {
+    console.log('🔄 Starting copyDashboardToForm (using TokenManager data)...');
+    
+    // Get user data from TokenManager as primary source
+    const user = TokenManager.getUser();
+    console.log('� TokenManager user data:', user);
+    
+    if (!user) {
+        console.error('❌ No user data available in TokenManager');
+        return;
+    }
+    
+    // Fill the form input fields using more specific selectors
+    const fillFormField = (inputId, value) => {
+        const formInput = document.querySelector(`#allotmentForm #${inputId}`);
+        console.log(`🔧 Trying to fill ${inputId}: formInput=${!!formInput}, value="${value}" (${typeof value})`);
+        
+        if (formInput && value !== undefined && value !== null && value !== 'Loading...' && value !== 'Not provided' && value !== '') {
+            formInput.value = String(value);
+            formInput.removeAttribute('placeholder');
+            console.log(`✅ Successfully filled ${inputId} with: "${formInput.value}"`);
+        } else {
+            console.log(`❌ Could not fill ${inputId}: element=${!!formInput}, value="${value}" (${typeof value})`);
+            
+            // If form input exists but value is invalid, try to clear any existing invalid value
+            if (formInput && (value === undefined || value === null || value === '')) {
+                formInput.value = '';
+                console.log(`🧹 Cleared ${inputId} due to invalid value`);
+            }
+        }
+    };
+    
+    // Fill the basic form fields using TokenManager data
+    console.log('📝 Filling form fields from TokenManager...');
+    console.log('📞 Phone number from TokenManager:', user.phone);
+    fillFormField('studentId', user.reg_no || user.student_id || user.id);
+    fillFormField('studentName', user.name || user.fullName || user.username);
+    fillFormField('course', user.department || user.course);
+    fillFormField('yearOfStudy', user.year_of_study || user.year);
+    fillFormField('phoneNumber', user.phone ? user.phone.replace(/\s+/g, '') : '');
+    fillFormField('studentEmail', user.email);
+    
+    // Fill academic score based on year of study from TokenManager
+    const userYear = user.year_of_study || user.year;
+    if (userYear) {
+        const year = parseInt(userYear);
+        if (year === 1 && user.keam_rank) {
+            // For 1st year students, use KEAM rank
+            fillFormField('academicScore', user.keam_rank);
+            console.log('✅ Used KEAM rank for 1st year student');
+        } else if (year > 1 && user.sgpa) {
+            // For 2nd year and above, use SGPA
+            fillFormField('academicScore', user.sgpa);
+            console.log('✅ Used SGPA for upper year student');
+        } else {
+            console.log('❌ No academic score available or year not determined');
+        }
+    }
+    
+    // Fill distance information if available in user data
+    if (user) {
+        // Check if user has distance data
+        if (user.distance_from_home || user.distanceFromHome) {
+            fillFormField('distanceFromHome', user.distance_from_home || user.distanceFromHome);
+            fillFormField('distanceUnit', user.distance_unit || user.distanceUnit || 'km');
+            console.log('✅ Used existing distance data from user profile');
+        } else if (user.distance_category) {
+            // Handle distance category mapping (if it exists)
+            const distanceMap = {
+                '<25km': { distance: '20', unit: 'km' },
+                '25-50km': { distance: '35', unit: 'km' }, 
+                '>50km': { distance: '75', unit: 'km' }
+            };
+            const mapping = distanceMap[user.distance_category];
+            if (mapping) {
+                fillFormField('distanceFromHome', mapping.distance);
+                fillFormField('distanceUnit', mapping.unit);
+                console.log(`✅ Used distance category mapping: ${user.distance_category}`);
+            }
+        } else {
+            // Set default distance unit to km if no distance data exists
+            fillFormField('distanceUnit', 'km');
+            console.log('✅ Set default distance unit to km');
+        }
+    }
+}
+
 
 function closeAllotmentModal() {
     const modal = document.getElementById('allotmentModal');
@@ -1706,13 +1702,6 @@ function closeAllotmentModal() {
     }
 }
 
-function prefillUserInfo() {
-    const user = TokenManager.getUser();
-    if (user) {
-        document.getElementById('studentId').value = user.id || '';
-        document.getElementById('studentName').value = user.name || user.fullName || '';
-    }
-}
 
 // Load hostel options from database
 async function loadHostelOptions() {
@@ -1745,11 +1734,11 @@ async function loadHostelOptions() {
             console.log(`✅ Loaded ${hostels.length} hostel options`);
         } else {
             console.error('❌ Failed to load hostels:', response.status);
-            showAlert('Failed to load hostel options', 'error');
+            dashShowAlert('Failed to load hostel options', 'error');
         }
     } catch (error) {
         console.error('❌ Error loading hostels:', error);
-        showAlert('Error loading hostel options', 'error');
+        dashShowAlert('Error loading hostel options', 'error');
     }
 }
 
@@ -1820,8 +1809,15 @@ async function handleAllotmentSubmission(event) {
         submitBtn.disabled = true;
         submitBtn.innerHTML = '<span class="spinner"></span>Submitting...';
         
-    // Clear previous alerts
-    dashClearAlerts();
+        // Clear previous alerts
+        dashClearAlerts();
+        
+        // Ensure auto-fill has completed before validation
+        console.log('🔄 Running auto-fill before validation...');
+        copyDashboardToForm();
+        
+        // Small delay to ensure DOM updates
+        await new Promise(resolve => setTimeout(resolve, 100));
         
         // Validate form
         if (!validateAllotmentForm()) {
@@ -1830,7 +1826,21 @@ async function handleAllotmentSubmission(event) {
         
         // Collect form data
         const formData = collectAllotmentFormData();
-        
+        // Add correct performance_type for backend
+        let performance_type;
+        if (formData.yearOfStudy === '1') {
+            performance_type = 'keam_rank';
+        } else {
+            performance_type = 'cgpa';
+        }
+        // Build payload for backend
+        const payload = {
+            ...formData,
+            performance_type: performance_type,
+            performance_score: formData.academicScore
+        };
+        console.log('📤 Sending form data to backend:', payload);
+
         // Submit to backend
         const response = await fetch(apiUrl('/api/allotment/register'), {
             method: 'POST',
@@ -1838,25 +1848,26 @@ async function handleAllotmentSubmission(event) {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${TokenManager.getToken()}`
             },
-            body: JSON.stringify(formData)
+            body: JSON.stringify(payload)
         });
-        
+
         const result = await response.json();
-        
+        console.log('📥 Backend response:', { status: response.status, result: result });
+
         if (response.ok) {
-            showAlert('Allotment application submitted successfully! You will be notified once processed.', 'success');
+            dashShowAlert('Allotment application submitted successfully! You will be notified once processed.', 'success');
             setTimeout(() => {
                 closeAllotmentModal();
                 // Refresh dashboard to show updated status
                 location.reload();
             }, 2000);
         } else {
-            showAlert(result.message || 'Failed to submit application. Please try again.', 'error');
+            dashShowAlert(result.message || 'Failed to submit application. Please try again.', 'error');
         }
         
     } catch (error) {
         console.error('Allotment submission error:', error);
-        showAlert('Network error. Please check your connection and try again.', 'error');
+        dashShowAlert('Network error. Please check your connection and try again.', 'error');
     } finally {
         // Reset button state
         submitBtn.disabled = false;
@@ -1865,16 +1876,41 @@ async function handleAllotmentSubmission(event) {
 }
 
 function validateAllotmentForm() {
+    console.log('🔍 Starting form validation...');
     const requiredFields = [
-        'studentId', 'studentName', 'course', 'yearOfStudy', 'academicScore', 'phoneNumber',
+        'studentId', 'studentName', 'course', 'yearOfStudy', 'academicScore', 'phoneNumber', 'studentEmail',
         'emergencyContactName', 'emergencyContactPhone', 'relationship', 'homeAddress', 
         'distanceFromHome', 'distanceUnit', 'hostelPreference', 'roomType'
     ];
     
     for (const fieldId of requiredFields) {
-        const field = document.getElementById(fieldId);
-        if (!field.value.trim()) {
-            showAlert(`Please fill in the ${field.previousElementSibling.textContent.replace(' *', '')} field.`, 'error');
+        // Use more specific selector to avoid ID conflicts with dashboard elements
+        const field = document.querySelector(`#allotmentForm #${fieldId}`) || document.getElementById(fieldId);
+        console.log(`🔍 Validating field '${fieldId}':`, {
+            element: field,
+            tagName: field?.tagName,
+            type: field?.type,
+            id: field?.id,
+            name: field?.name,
+            value: field?.value,
+            form: field?.form?.id,
+            selector: `#allotmentForm #${fieldId}`
+        });
+        
+        if (!field) {
+            console.error(`Field with ID '${fieldId}' not found in form`);
+            dashShowAlert(`Required field '${fieldId}' is missing from the form.`, 'error');
+            return false;
+        }
+        
+        const value = field.value;
+        console.log(`📝 Checking field '${fieldId}': value="${value}", length=${value?.length}`);
+        
+        if (!value || !value.trim()) {
+            const label = field.previousElementSibling;
+            const fieldName = label ? label.textContent.replace(' *', '') : fieldId;
+            console.error(`❌ Validation failed for '${fieldId}': empty or whitespace only`);
+            dashShowAlert(`Please fill in the ${fieldName} field.`, 'error');
             field.focus();
             return false;
         }
@@ -1887,7 +1923,7 @@ function validateAllotmentForm() {
     if (year === '1') {
         // For 1st year, validate rank (should be a positive integer)
         if (!/^\d+$/.test(academicScore) || parseInt(academicScore) <= 0) {
-            showAlert('Please enter a valid entrance exam rank (positive number).', 'error');
+            dashShowAlert('Please enter a valid entrance exam rank (positive number).', 'error');
             document.getElementById('academicScore').focus();
             return false;
         }
@@ -1895,7 +1931,7 @@ function validateAllotmentForm() {
         // For other years, validate CGPA (should be between 0 and 10)
         const cgpa = parseFloat(academicScore);
         if (isNaN(cgpa) || cgpa < 0 || cgpa > 10) {
-            showAlert('Please enter a valid CGPA between 0 and 10.', 'error');
+            dashShowAlert('Please enter a valid CGPA between 0 and 10.', 'error');
             document.getElementById('academicScore').focus();
             return false;
         }
@@ -1904,24 +1940,32 @@ function validateAllotmentForm() {
     // Check if terms are agreed
     const agreeTerms = document.getElementById('agreeTerms');
     if (!agreeTerms.checked) {
-        showAlert('Please agree to the hostel terms and conditions.', 'error');
+        dashShowAlert('Please agree to the hostel terms and conditions.', 'error');
         agreeTerms.focus();
         return false;
     }
     
     // Validate phone numbers
     const phoneRegex = /^[\+]?[1-9][\d]{9,14}$/;
-    const phoneNumber = document.getElementById('phoneNumber').value;
-    const emergencyPhone = document.getElementById('emergencyContactPhone').value;
+    const phoneNumber = document.getElementById('phoneNumber').value.replace(/\s+/g, ''); // Remove spaces
+    const emergencyPhone = document.getElementById('emergencyContactPhone').value.replace(/\s+/g, ''); // Remove spaces
+    
+    console.log('📞 Phone validation:', {
+        originalPhoneNumber: document.getElementById('phoneNumber').value,
+        cleanedPhoneNumber: phoneNumber,
+        phoneLength: phoneNumber?.length,
+        phoneRegexTest: phoneRegex.test(phoneNumber),
+        regex: phoneRegex.toString()
+    });
     
     if (!phoneRegex.test(phoneNumber)) {
-        showAlert('Please enter a valid phone number.', 'error');
+        dashShowAlert('Please enter a valid phone number.', 'error');
         document.getElementById('phoneNumber').focus();
         return false;
     }
     
     if (!phoneRegex.test(emergencyPhone)) {
-        showAlert('Please enter a valid emergency contact phone number.', 'error');
+        dashShowAlert('Please enter a valid emergency contact phone number.', 'error');
         document.getElementById('emergencyContactPhone').focus();
         return false;
     }
@@ -1930,25 +1974,41 @@ function validateAllotmentForm() {
 }
 
 function collectAllotmentFormData() {
+    // Helper function to safely get element value from the modal form
+    const getFormValue = (id, defaultValue = '') => {
+        // Prefer modal form input
+        let element = document.querySelector(`#allotmentForm #${id}`);
+        if (!element) {
+            // Fallback to global ID
+            element = document.getElementById(id);
+        }
+        if (!element) {
+            console.error(`Element with ID '${id}' not found in collectAllotmentFormData`);
+            return defaultValue;
+        }
+        return element.value || defaultValue;
+    };
+
     return {
-        studentId: document.getElementById('studentId').value.trim(),
-        studentName: document.getElementById('studentName').value.trim(),
-        course: document.getElementById('course').value.trim(),
-        yearOfStudy: document.getElementById('yearOfStudy').value,
-        academicScore: document.getElementById('academicScore').value.trim(),
-        phoneNumber: document.getElementById('phoneNumber').value.trim(),
-        emergencyContactName: document.getElementById('emergencyContactName').value.trim(),
-        emergencyContactPhone: document.getElementById('emergencyContactPhone').value.trim(),
-        relationship: document.getElementById('relationship').value,
-        homeAddress: document.getElementById('homeAddress').value.trim(),
-        distanceFromHome: parseFloat(document.getElementById('distanceFromHome').value),
-        distanceUnit: document.getElementById('distanceUnit').value,
-        medicalInfo: document.getElementById('medicalInfo').value.trim() || null,
-        specialRequests: document.getElementById('specialRequests').value.trim() || null,
-        hostelPreference: document.getElementById('hostelPreference').value,
-        roomType: document.getElementById('roomType').value,
-        floorPreference: document.getElementById('floorPreference').value || null,
-        additionalNotes: document.getElementById('additionalNotes').value.trim() || null
+        studentId: getFormValue('studentId').trim(),
+        studentName: getFormValue('studentName').trim(),
+        course: getFormValue('course').trim(),
+        yearOfStudy: getFormValue('yearOfStudy'),
+        academicScore: getFormValue('academicScore').trim(),
+        phoneNumber: getFormValue('phoneNumber').trim(),
+        studentEmail: getFormValue('studentEmail').trim(),
+        emergencyContactName: getFormValue('emergencyContactName').trim(),
+        emergencyContactPhone: getFormValue('emergencyContactPhone').trim(),
+        relationship: getFormValue('relationship'),
+        homeAddress: getFormValue('homeAddress').trim(),
+        distanceFromHome: parseFloat(getFormValue('distanceFromHome', '0')),
+        distanceUnit: getFormValue('distanceUnit'),
+        medicalInfo: getFormValue('medicalInfo').trim() || null,
+        specialRequests: getFormValue('specialRequests').trim() || null,
+        hostelPreference: getFormValue('hostelPreference'),
+        roomType: getFormValue('roomType'),
+        floorPreference: getFormValue('floorPreference') || null,
+        additionalNotes: getFormValue('additionalNotes').trim() || null
     };
 }
 
