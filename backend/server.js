@@ -26,6 +26,8 @@ app.use((req, res, next) => {
 const testRoutes = require('./routes/test');
 const authRoutes = require('./routes/auth');
 const allotmentRoutes = require('./routes/allotment');
+const maintenanceRoutes = require('./routes/maintenance');
+const notificationRoutes = require('./routes/notifications');
 
 // Basic health check route
 app.get('/', (req, res) => {
@@ -49,6 +51,8 @@ app.get('/api/health', (req, res) => {
 app.use('/api/test', testRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/allotment', allotmentRoutes);
+app.use('/api/maintenance', maintenanceRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

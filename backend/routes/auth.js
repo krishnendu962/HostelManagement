@@ -3,6 +3,7 @@ const { body, validationResult } = require('express-validator');
 const router = express.Router();
 const AuthService = require('../services/AuthService');
 const { isAuthenticated } = require('../middleware/auth');
+const { query } = require('../config/database');
 
 // Admin codes for secure registration
 const ADMIN_CODES = {
@@ -195,16 +196,52 @@ router.post('/change-password', isAuthenticated, [
     const { currentPassword, newPassword } = req.body;
     const userId = req.user.userId;
 
-    // For demo purposes, we'll simulate password validation
-    // In a real app, you'd verify against the database
-    if (currentPassword !== 'password123') {
+    console.log('🔐 Change password request for user:', {
+      jwtUserId: req.user.userId,
+      jwtUsername: req.user.username,
+      jwtRole: req.user.role,
+      fullUserObject: req.user
+    });
+
+    console.log('🔐 Change password request:', { userId, hasCurrentPassword: !!currentPassword, hasNewPassword: !!newPassword });
+
+    // Get user from database to verify current password
+    const user = await AuthService.getUserById(userId);
+    console.log('👤 User found:', { userId: user?.user_id, username: user?.username, hasPasswordHash: !!user?.password_hash });
+    
+    if (!user) {
+      console.log('❌ User not found in database');
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Verify current password
+    console.log('🔍 Verifying current password...');
+    const isCurrentPasswordValid = await AuthService.verifyPassword(currentPassword, user.password_hash);
+    console.log('✅ Password verification result:', isCurrentPasswordValid);
+    
+    if (!isCurrentPasswordValid) {
+      console.log('❌ Current password is incorrect');
       return res.status(400).json({
         success: false,
         message: 'Current password is incorrect'
       });
     }
 
-    // Simulate successful password change
+    // Check if new password is different from current
+    const isSamePassword = await AuthService.verifyPassword(newPassword, user.password_hash);
+    if (isSamePassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'New password must be different from current password'
+      });
+    }
+
+    // Update password in database
+    await AuthService.updatePassword(userId, newPassword);
+
     res.json({
       success: true,
       message: 'Password changed successfully'
@@ -220,25 +257,56 @@ router.post('/change-password', isAuthenticated, [
 
 // PUT /api/auth/profile
 router.put('/profile', isAuthenticated, [
+  body('username').optional().isLength({ min: 3 }).withMessage('Username must be at least 3 characters'),
   body('email').optional().isEmail().withMessage('Must be a valid email address'),
   body('phone').optional().isLength({ min: 10 }).withMessage('Phone number must be at least 10 digits'),
-  body('fullName').optional().isLength({ min: 2 }).withMessage('Full name must be at least 2 characters'),
-  body('course').optional().isLength({ min: 1 }).withMessage('Course cannot be empty'),
-  body('year').optional().isIn(['1', '2', '3', '4']).withMessage('Year must be 1, 2, 3, or 4'),
-  body('studentId').optional().isLength({ min: 1 }).withMessage('Student ID cannot be empty')
+  body('fullName').optional().isLength({ min: 2 }).withMessage('Full name must be at least 2 characters')
 ], handleValidationErrors, async (req, res) => {
   try {
     const userId = req.user.userId;
     const updateData = req.body;
     
-    // For demo purposes, we'll just return success with the updated data
-    // In a real app, you'd update the database and return the updated user
-    const updatedUser = {
-      ...req.user,
-      ...updateData,
-      id: userId,
-      userId: userId
-    };
+    console.log('📝 Profile update request:', { 
+      userId, 
+      updateData,
+      hasUsername: !!updateData.username,
+      hasEmail: !!updateData.email,
+      hasPhone: !!updateData.phone,
+      hasFullName: !!updateData.fullName
+    });
+    
+    // Remove undefined/null values
+    const cleanUpdateData = {};
+    for (const [key, value] of Object.entries(updateData)) {
+      if (value !== undefined && value !== null && value !== '') {
+        cleanUpdateData[key] = value;
+      }
+    }
+    
+    console.log('📝 Cleaned update data:', cleanUpdateData);
+    
+    if (Object.keys(cleanUpdateData).length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No valid data provided for update'
+      });
+    }
+    
+    // Update user in database
+    const updatedUser = await AuthService.updateUserProfile(userId, cleanUpdateData);
+    
+    console.log('📝 Profile update result:', { 
+      success: !!updatedUser,
+      updatedUserId: updatedUser?.user_id,
+      updatedUsername: updatedUser?.username
+    });
+    
+    if (!updatedUser) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
     
     res.json({
       success: true,
@@ -249,6 +317,162 @@ router.put('/profile', isAuthenticated, [
     res.status(500).json({
       success: false,
       error: 'Profile update failed',
+      message: error.message
+    });
+  }
+});
+
+// POST /api/auth/student-profile - Create student profile
+router.post('/student-profile', isAuthenticated, async (req, res) => {
+  try {
+    console.log('📥 Request received for student profile creation');
+    console.log('👤 User from middleware:', req.user);
+    
+    const userId = req.user.userId || req.user.id;
+    console.log('🔍 Extracted userId:', userId);
+    
+    const {
+      name,
+      regNo,
+      yearOfStudy,
+      department,
+      keamRank,
+      distanceCategory,
+      category,
+      sgpa,
+      backlogs
+    } = req.body;
+    
+    console.log('📝 Creating student profile for user:', userId);
+    console.log('📋 Profile data:', req.body);
+    
+    // Validate required fields
+    if (!name || !regNo || !yearOfStudy) {
+      return res.status(400).json({
+        message: 'Name, registration number, and year of study are required'
+      });
+    }
+    
+    // Check if user is a student
+    const userResult = await query('SELECT role FROM users WHERE user_id = $1', [userId]);
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    if (userResult.rows[0].role !== 'Student') {
+      return res.status(400).json({ 
+        message: 'Only students can create student profiles' 
+      });
+    }
+    
+    // Check if student profile already exists
+    const existingStudent = await query('SELECT * FROM students WHERE user_id = $1', [userId]);
+    if (existingStudent.rows.length > 0) {
+      return res.status(400).json({ 
+        message: 'Student profile already exists. You can update it instead.' 
+      });
+    }
+    
+    // Insert student profile
+    const insertResult = await query(`
+      INSERT INTO students (
+        user_id, name, reg_no, year_of_study, department, 
+        keam_rank, distance_category, category, sgpa, backlogs
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      RETURNING *
+    `, [
+      userId,
+      name,
+      regNo,
+      parseInt(yearOfStudy),
+      department || null,
+      keamRank ? parseInt(keamRank) : null,
+      distanceCategory || null,
+      category || null,
+      sgpa ? parseFloat(sgpa) : null,
+      backlogs ? parseInt(backlogs) : 0
+    ]);
+    
+    console.log('✅ Student profile created successfully:', insertResult.rows[0]);
+    
+    res.status(201).json({
+      message: 'Student profile created successfully',
+      student: insertResult.rows[0]
+    });
+    
+  } catch (error) {
+    console.error('❌ Error creating student profile:', error);
+    console.error('❌ Error details:', {
+      message: error.message,
+      code: error.code,
+      detail: error.detail,
+      constraint: error.constraint
+    });
+    res.status(500).json({ 
+      message: 'Internal server error',
+      error: error.message 
+    });
+  }
+});
+
+// GET /api/auth/student-profile - Get complete student profile with room info
+router.get('/student-profile', isAuthenticated, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    console.log('📋 Getting complete student profile for user:', userId);
+    
+    // Get user data
+    const user = await AuthService.getProfile(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+    
+    // Get student data
+    const { StudentModel } = require('../models');
+    const student = await StudentModel.findByUserId(userId);
+    
+    if (!student) {
+      // Student record not found is normal - user exists but hasn't been set up as student
+      console.log('ℹ️ No student record found for user:', userId, '- returning user data only');
+      return res.json({
+        success: true,
+        data: { 
+          profile: {
+            ...user,
+            isStudent: false,
+            message: 'User account exists but student profile not set up'
+          }
+        }
+      });
+    }
+    
+    // Combine user and student data
+    const completeProfile = {
+      ...user,
+      ...student,
+      fullName: student.name,
+      isStudent: true
+    };
+    
+    console.log('✅ Complete student profile retrieved:', {
+      userId: user.user_id,
+      studentId: student.student_id,
+      name: student.name,
+      hasRoomInfo: false // Will be enhanced later
+    });
+    
+    res.json({
+      success: true,
+      data: { profile: completeProfile }
+    });
+  } catch (error) {
+    console.error('Get student profile error:', error.message);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get student profile',
       message: error.message
     });
   }

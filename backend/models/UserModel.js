@@ -114,6 +114,18 @@ class UserModel extends BaseModel {
   async findById(userId) {
     return await this.findByIdSafe(userId);
   }
+
+  // Get user with password hash (for authentication purposes)
+  async findByIdWithPassword(userId) {
+    try {
+      const queryText = 'SELECT * FROM users WHERE user_id = $1';
+      const result = await query(queryText, [userId]);
+      return result.rows[0] || null;
+    } catch (error) {
+      console.error('Error finding user with password:', error.message);
+      throw error;
+    }
+  }
 }
 
 module.exports = new UserModel();

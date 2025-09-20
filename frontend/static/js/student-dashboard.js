@@ -81,9 +81,12 @@ const HostelAPI = {
 };
 
 // Initialize the student dashboard
-document.addEventListener('DOMContentLoaded', () => {
-    checkAuthentication();
-    StudentDashboard.init();
+document.addEventListener('DOMContentLoaded', async () => {
+    if (checkAuthentication()) {
+        // Check if student profile exists
+        await checkStudentProfile();
+        StudentDashboard.init();
+    }
 });
 
 function checkAuthentication() {
@@ -104,6 +107,56 @@ function checkAuthentication() {
     }
     
     return true;
+}
+
+// Check if student profile exists
+async function checkStudentProfile() {
+    try {
+        console.log('🔍 Checking student profile...');
+        const response = await fetch(apiUrl('/api/auth/student-profile'), {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${TokenManager.getToken()}`
+            }
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            if (result.success && result.data.profile) {
+                if (result.data.profile.isStudent === false) {
+                    // Student profile doesn't exist
+                    console.log('📝 Student profile not found, redirecting to setup...');
+                    alert('⚠️ Please complete your student profile to access hostel services.');
+                    window.location.href = 'student-profile-setup.html';
+                    return false;
+                } else {
+                    // Profile exists
+                    console.log('✅ Student profile verified');
+                    return true;
+                }
+            }
+        }
+        
+        if (response.status === 404) {
+            // User not found
+            console.log('❌ User not found');
+            alert('❌ User account not found. Please contact administration.');
+            window.location.href = 'login.html';
+            return false;
+        } else if (!response.ok) {
+            // Other errors
+            console.error('❌ Error checking student profile:', response.status);
+            const error = await response.json();
+            alert('❌ Error checking profile. Please try again.');
+            return false;
+        }
+        
+        return true;
+    } catch (error) {
+        console.error('❌ Network error checking student profile:', error);
+        // Continue anyway in case of network issues
+        return true;
+    }
 }
 
 // Helper function to get correct dashboard URL
@@ -147,22 +200,98 @@ const StudentDashboard = {
         }
     },
 
-    loadUserInfo() {
-        const user = TokenManager.getUser();
-        
-        if (user) {
-            // Update individual info fields
-            const updateElement = (id, value) => {
-                const element = document.getElementById(id);
-                if (element) element.textContent = value || 'Not provided';
-            };
+    async loadUserInfo() {
+        try {
+            // First try to get data from API
+            const response = await fetch(apiUrl('/api/auth/student-profile'), {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${TokenManager.getToken()}`
+                }
+            });
             
-            updateElement('studentName', user.name || user.fullName || user.username);
-            updateElement('studentId', user.id || user.studentId);
-            updateElement('course', user.course);
-            updateElement('yearOfStudy', user.year || user.yearOfStudy);
-            updateElement('phone', user.phone);
-            updateElement('email', user.email);
+            if (response.ok) {
+                const result = await response.json();
+                if (result.success && result.data.profile) {
+                    const profile = result.data.profile;
+                    console.log('📋 Loaded student profile from database:', profile);
+                    
+                    if (profile.isStudent === false) {
+                        // User exists but is not set up as a student
+                        console.log('ℹ️ User is not registered as a student');
+                        const updateElement = (id, value) => {
+                            const element = document.getElementById(id);
+                            if (element) element.textContent = value || 'Not available';
+                        };
+                        
+                        updateElement('studentName', profile.username);
+                        updateElement('studentId', 'Not registered');
+                        updateElement('course', 'Not registered');
+                        updateElement('yearOfStudy', 'Not registered');
+                        updateElement('phone', profile.phone);
+                        updateElement('email', profile.email);
+                        
+                        // Update TokenManager with user data
+                        TokenManager.setUser(profile);
+                        return;
+                    }
+                    
+                    // Update individual info fields with database data
+                    const updateElement = (id, value) => {
+                        const element = document.getElementById(id);
+                        if (element) element.textContent = value || 'Not provided';
+                    };
+                    
+                    updateElement('studentName', profile.name || profile.fullName || profile.username);
+                    updateElement('studentId', profile.reg_no || profile.student_id);
+                    updateElement('course', profile.department);
+                    updateElement('yearOfStudy', profile.year_of_study);
+                    updateElement('phone', profile.phone);
+                    updateElement('email', profile.email);
+                    
+                    // Update TokenManager with fresh data
+                    TokenManager.setUser(profile);
+                    return;
+                }
+            } else {
+                // API call failed, but not necessarily an error - could be authentication issue
+                console.log('⚠️ Failed to fetch student profile from API, using fallback data');
+            }
+            
+            // Fallback to TokenManager data if API fails
+            console.log('ℹ️ Using fallback data from TokenManager');
+            const user = TokenManager.getUser();
+            
+            if (user) {
+                const updateElement = (id, value) => {
+                    const element = document.getElementById(id);
+                    if (element) element.textContent = value || 'Not provided';
+                };
+                
+                updateElement('studentName', user.name || user.fullName || user.username);
+                updateElement('studentId', user.id || user.studentId || user.reg_no);
+                updateElement('course', user.course || user.department);
+                updateElement('yearOfStudy', user.year || user.yearOfStudy || user.year_of_study);
+                updateElement('phone', user.phone);
+                updateElement('email', user.email);
+            }
+        } catch (error) {
+            console.error('Error loading user info:', error);
+            // Fallback to TokenManager data on error
+            const user = TokenManager.getUser();
+            if (user) {
+                const updateElement = (id, value) => {
+                    const element = document.getElementById(id);
+                    if (element) element.textContent = value || 'Not provided';
+                };
+                
+                updateElement('studentName', user.name || user.fullName || user.username);
+                updateElement('studentId', user.id || user.studentId || user.reg_no);
+                updateElement('course', user.course || user.department);
+                updateElement('yearOfStudy', user.year || user.yearOfStudy || user.year_of_study);
+                updateElement('phone', user.phone);
+                updateElement('email', user.email);
+            }
         }
     },
 
@@ -170,41 +299,90 @@ const StudentDashboard = {
         try {
             const roomInfoDiv = document.getElementById('roomInfo');
             if (roomInfoDiv) {
-                // Check allotment status first
+                // Show loading state
                 roomInfoDiv.innerHTML = `
                     <div class="info-grid">
                         <div class="info-item">
                             <span class="info-label">Room Number:</span>
-                            <span class="info-value" id="detailRoomNumber">Checking...</span>
+                            <span class="info-value" id="detailRoomNumber">Loading...</span>
                         </div>
                         <div class="info-item">
                             <span class="info-label">Hostel:</span>
-                            <span class="info-value" id="detailHostelName">Checking...</span>
+                            <span class="info-value" id="detailHostelName">Loading...</span>
                         </div>
                         <div class="info-item">
                             <span class="info-label">Room Type:</span>
-                            <span class="info-value" id="roomType">---</span>
+                            <span class="info-value" id="roomType">Loading...</span>
                         </div>
                         <div class="info-item">
                             <span class="info-label">Occupancy:</span>
-                            <span class="info-value" id="occupancy">---</span>
+                            <span class="info-value" id="occupancy">Loading...</span>
                         </div>
                         <div class="info-item">
                             <span class="info-label">Floor:</span>
-                            <span class="info-value" id="floor">---</span>
+                            <span class="info-value" id="floor">Loading...</span>
                         </div>
                     </div>
                 `;
                 
-                // Now try to load actual room data
-                checkAllotmentStatus();
+                // Fetch room data from API
+                const response = await fetch(apiUrl('/api/allotment/my-room'), {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${TokenManager.getToken()}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.success && result.data.hasAllocation) {
+                        const allocation = result.data.allocation;
+                        console.log('🏠 Loaded room allocation from database:', allocation);
+                        
+                        // Update room info with real data
+                        document.getElementById('detailRoomNumber').textContent = allocation.roomNumber;
+                        document.getElementById('detailHostelName').textContent = allocation.hostelName;
+                        document.getElementById('roomType').textContent = `${allocation.capacity}-person room`;
+                        document.getElementById('occupancy').textContent = `${allocation.capacity} max`;
+                        document.getElementById('floor').textContent = `Floor ${allocation.floor}`;
+                    } else {
+                        // No allocation found - this is normal, not an error
+                        console.log('ℹ️ No room allocation found for student');
+                        roomInfoDiv.innerHTML = `
+                            <div class="info-message" style="text-align: center; padding: 20px; background: #f8f9fa; border-radius: 8px; border: 1px solid #dee2e6;">
+                                <div style="font-size: 2rem; margin-bottom: 10px;">🏠</div>
+                                <h4 style="color: #495057; margin-bottom: 10px;">No Room Assigned</h4>
+                                <p style="color: #6c757d; margin-bottom: 15px;">
+                                    You haven't been assigned a hostel room yet.
+                                </p>
+                                <p style="color: #6c757d; font-size: 0.9em;">
+                                    Please contact the hostel administration for room allocation or check if room allocation applications are open.
+                                </p>
+                            </div>
+                        `;
+                    }
+                } else {
+                    // Actual API error
+                    const errorResult = await response.json().catch(() => ({ message: 'Unknown error' }));
+                    console.error('❌ API error loading room info:', errorResult);
+                    throw new Error(errorResult.message || 'Failed to fetch room data from server');
+                }
             }
         } catch (error) {
             console.error('Error loading room info:', error);
             const roomInfoDiv = document.getElementById('roomInfo');
             if (roomInfoDiv) {
                 roomInfoDiv.innerHTML = `
-                    <p style="color: #e74c3c;">Unable to load room information. Please refresh the page.</p>
+                    <div class="error-message" style="text-align: center; padding: 20px; background: #fff5f5; border-radius: 8px; border: 1px solid #fed7d7;">
+                        <div style="font-size: 2rem; margin-bottom: 10px;">⚠️</div>
+                        <h4 style="color: #e53e3e; margin-bottom: 10px;">Connection Error</h4>
+                        <p style="color: #c53030; margin-bottom: 15px;">
+                            Unable to load room information from server.
+                        </p>
+                        <button class="btn btn-outline" onclick="StudentDashboard.loadRoomInfo()" style="background: white; border: 1px solid #e53e3e; color: #e53e3e;">
+                            🔄 Try Again
+                        </button>
+                    </div>
                 `;
             }
         }
@@ -214,69 +392,194 @@ const StudentDashboard = {
         try {
             const maintenanceDiv = document.getElementById('maintenanceRequests');
             if (maintenanceDiv) {
-                // Mock data for demonstration
-                const mockRequests = [
-                    { id: 1, title: 'Leaky Faucet', status: 'Pending', date: '2025-09-15' },
-                    { id: 2, title: 'AC Not Working', status: 'In Progress', date: '2025-09-10' }
-                ];
+                // Show loading state
+                maintenanceDiv.innerHTML = `
+                    <div class="loading-message">
+                        <p>Loading maintenance requests...</p>
+                    </div>
+                `;
                 
-                if (mockRequests.length === 0) {
-                    maintenanceDiv.innerHTML = `
-                        <p style="color: #6c757d; text-align: center; margin: 1rem 0;">
-                            No maintenance requests yet.
-                        </p>
-                        <button class="btn btn-primary" onclick="newMaintenanceRequest()" style="width: 100%;">
-                            Submit New Request
-                        </button>
-                    `;
+                // Fetch maintenance requests from API
+                const response = await fetch(apiUrl('/api/maintenance/my-requests'), {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${TokenManager.getToken()}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.success && result.data.requests) {
+                        const requests = result.data.requests;
+                        console.log('🔧 Loaded maintenance requests from database:', requests);
+                        
+                        if (requests.length === 0) {
+                            // No requests found
+                            maintenanceDiv.innerHTML = `
+                                <p style="color: #6c757d; text-align: center; margin: 1rem 0;">
+                                    📭 No maintenance requests yet.
+                                </p>
+                                <button class="btn btn-primary" onclick="newMaintenanceRequest()" style="width: 100%;">
+                                    🔧 Submit New Request
+                                </button>
+                            `;
+                        } else {
+                            // Display requests
+                            const requestsHTML = requests.map(request => {
+                                const statusColor = {
+                                    'Pending': '#e74c3c',
+                                    'In Progress': '#f39c12', 
+                                    'Completed': '#27ae60',
+                                    'Cancelled': '#95a5a6'
+                                }[request.status] || '#95a5a6';
+                                
+                                return `
+                                    <div style="padding: 0.75rem; border-left: 3px solid ${statusColor}; margin: 0.5rem 0; background: #f8f9fa; border-radius: 4px;">
+                                        <strong>${request.title}</strong>
+                                        <div style="font-size: 0.9rem; color: #555; margin: 0.25rem 0;">
+                                            ${request.description}
+                                        </div>
+                                        <div style="font-size: 0.9rem; color: #6c757d; margin-top: 0.25rem;">
+                                            Status: ${request.status} | Date: ${new Date(request.date).toLocaleDateString()}
+                                            ${request.roomNumber ? ` | Room: ${request.roomNumber}` : ''}
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('');
+                            
+                            maintenanceDiv.innerHTML = `
+                                ${requestsHTML}
+                                <div style="margin-top: 1rem; display: flex; gap: 0.5rem;">
+                                    <button class="btn btn-primary" onclick="newMaintenanceRequest()" style="flex: 1;">New Request</button>
+                                </div>
+                            `;
+                        }
+                    } else {
+                        throw new Error(result.message || 'Failed to load maintenance requests');
+                    }
                 } else {
-                    const requestsHTML = mockRequests.map(req => `
-                        <div style="padding: 0.75rem; border-left: 3px solid ${req.status === 'Completed' ? '#27ae60' : req.status === 'In Progress' ? '#f39c12' : '#e74c3c'}; margin: 0.5rem 0; background: #f8f9fa; border-radius: 4px;">
-                            <strong>${req.title}</strong>
-                            <div style="font-size: 0.9rem; color: #6c757d; margin-top: 0.25rem;">
-                                Status: ${req.status} | Date: ${req.date}
-                            </div>
-                        </div>
-                    `).join('');
-                    
-                    maintenanceDiv.innerHTML = `
-                        ${requestsHTML}
-                        <div style="margin-top: 1rem; display: flex; gap: 0.5rem;">
-                            <button class="btn btn-primary" onclick="newMaintenanceRequest()" style="flex: 1;">New Request</button>
-                            <button class="btn btn-outline" onclick="viewAllRequests()" style="flex: 1;">View All</button>
-                        </div>
-                    `;
+                    // Actual API error
+                    const errorResult = await response.json().catch(() => ({ message: 'Unknown error' }));
+                    console.error('❌ API error loading maintenance requests:', errorResult);
+                    throw new Error(errorResult.message || 'Failed to fetch maintenance requests from server');
                 }
             }
         } catch (error) {
             console.error('Error loading maintenance requests:', error);
+            const maintenanceDiv = document.getElementById('maintenanceRequests');
+            if (maintenanceDiv) {
+                maintenanceDiv.innerHTML = `
+                    <div class="error-message" style="text-align: center; padding: 20px; background: #fff5f5; border-radius: 8px; border: 1px solid #fed7d7;">
+                        <div style="font-size: 2rem; margin-bottom: 10px;">⚠️</div>
+                        <h4 style="color: #e53e3e; margin-bottom: 10px;">Connection Error</h4>
+                        <p style="color: #c53030; margin-bottom: 15px;">
+                            Unable to load maintenance requests from server.
+                        </p>
+                        <button class="btn btn-outline" onclick="StudentDashboard.loadMaintenanceRequests()" style="background: white; border: 1px solid #e53e3e; color: #e53e3e;">
+                            🔄 Try Again
+                        </button>
+                    </div>
+                `;
+            }
         }
     },
 
     async loadNotifications() {
         try {
-            // Mock notifications
-            const mockNotifications = [
-                { id: 1, title: 'Hostel Fee Due', message: 'Your hostel fee for this month is due on 25th September', type: 'warning', date: '2025-09-17' },
-                { id: 2, title: 'Maintenance Completed', message: 'Your AC repair request has been completed', type: 'success', date: '2025-09-16' },
-                { id: 3, title: 'Hostel Rules Update', message: 'New visiting hours have been updated', type: 'info', date: '2025-09-15' }
-            ];
-
+            console.log('🔍 Starting to load notifications...');
             const notificationsDiv = document.getElementById('notifications');
             if (notificationsDiv) {
-                const notificationsHTML = mockNotifications.slice(0, 3).map(notif => `
-                    <div style="padding: 0.75rem; border-left: 3px solid ${notif.type === 'success' ? '#27ae60' : notif.type === 'warning' ? '#f39c12' : '#3498db'}; margin: 0.5rem 0; background: #f8f9fa; border-radius: 4px;">
-                        <strong>${notif.title}</strong>
-                        <div style="font-size: 0.9rem; margin-top: 0.25rem;">${notif.message}</div>
-                        <div style="font-size: 0.8rem; color: #666; margin-top: 0.25rem;">${notif.date}</div>
+                // Show loading state
+                notificationsDiv.innerHTML = `
+                    <div class="loading-message">
+                        <p>Loading notifications...</p>
                     </div>
-                `).join('');
+                `;
                 
-                notificationsDiv.innerHTML = notificationsHTML || '<p style="color: #666; font-style: italic;">No new notifications</p>';
+                console.log('📡 Making API call to /api/notifications/my-notifications');
+                // Fetch notifications from API
+                const response = await fetch(apiUrl('/api/notifications/my-notifications'), {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${TokenManager.getToken()}`
+                    }
+                });
+                
+                console.log('📡 API response status:', response.status, response.ok);
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log('📡 API response data:', result);
+                    
+                    if (result.success && result.data.notifications) {
+                        const notifications = result.data.notifications;
+                        console.log('📢 Loaded notifications from database:', notifications);
+                        
+                        if (notifications.length === 0) {
+                            notificationsDiv.innerHTML = '<p style="color: #666; font-style: italic;">No new notifications</p>';
+                            updateNotificationBadge(0);
+                            return;
+                        }
+                        
+                        // Display notifications with appropriate styling
+                        const notificationsHTML = notifications.map(notif => {
+                            const typeColors = {
+                                'success': '#27ae60',
+                                'warning': '#f39c12', 
+                                'info': '#3498db',
+                                'error': '#e74c3c'
+                            };
+                            
+                            const typeIcons = {
+                                'success': '✅',
+                                'warning': '⚠️',
+                                'info': 'ℹ️',
+                                'error': '❌'
+                            };
+                            
+                            const color = typeColors[notif.type] || '#3498db';
+                            const icon = typeIcons[notif.type] || 'ℹ️';
+                            
+                            return `
+                                <div style="padding: 0.75rem; border-left: 3px solid ${color}; margin: 0.5rem 0; background: #f8f9fa; border-radius: 4px;">
+                                    <strong>${icon} ${notif.title}</strong>
+                                    <div style="font-size: 0.9rem; margin-top: 0.25rem; color: #555;">${notif.message}</div>
+                                    <div style="font-size: 0.8rem; color: #666; margin-top: 0.25rem;">
+                                        ${new Date(notif.date).toLocaleDateString()}
+                                    </div>
+                                </div>
+                            `;
+                        }).join('');
+                        
+                        notificationsDiv.innerHTML = notificationsHTML;
+                        
+                        // Update notification badge
+                        const unreadCount = notifications.filter(n => !n.isRead).length;
+                        updateNotificationBadge(unreadCount || notifications.length);
+                    } else {
+                        throw new Error(result.message || 'Failed to load notifications');
+                    }
+                } else {
+                    // API error - show fallback message
+                    throw new Error('Failed to fetch notifications from server');
+                }
             }
-
         } catch (error) {
             console.error('Error loading notifications:', error);
+            const notificationsDiv = document.getElementById('notifications');
+            if (notificationsDiv) {
+                notificationsDiv.innerHTML = `
+                    <div class="error-message" style="text-align: center; padding: 15px; background: #fff5f5; border-radius: 8px; border: 1px solid #fed7d7;">
+                        <p style="color: #e53e3e; margin-bottom: 10px;">Unable to load notifications</p>
+                        <button class="btn btn-outline" onclick="StudentDashboard.loadNotifications()" style="background: white; border: 1px solid #e53e3e; color: #e53e3e; padding: 5px 10px; border-radius: 4px; cursor: pointer;">
+                            🔄 Try Again
+                        </button>
+                    </div>
+                `;
+            }
+            
+            // Set badge to 0 on error
+            updateNotificationBadge(0);
         }
     },
 
@@ -553,32 +856,121 @@ function viewAllRequests() {
     showGeneralModal('📋 All Maintenance Requests', requestsHtml, actions);
 }
 
-function viewAllNotifications() {
-    const sampleNotifications = [
-        { title: 'Hostel Fee Due', message: 'Please pay your hostel fee by Sept 30th', date: '2025-09-19', type: 'warning', urgent: true },
-        { title: 'Room Inspection', message: 'Room inspection scheduled for Sept 25th', date: '2025-09-18', type: 'info', urgent: false },
-        { title: 'Maintenance Completed', message: 'Your electrical issue has been resolved', date: '2025-09-17', type: 'success', urgent: false }
-    ];
-    
-    const notificationsHtml = `
-        <div class="modal-content-container">
-            <p style="margin-bottom: 1.5rem; color: #7f8c8d;">Your recent notifications:</p>
-            ${sampleNotifications.map(notif => `
-                <div class="notification-item notification-${notif.type}">
-                    <div class="notification-meta">
-                        <strong style="color: #2c3e50;">${notif.title}</strong>
-                        <div>
-                            ${notif.urgent ? '<span class="urgency-badge urgency-urgent">URGENT</span>' : ''}
-                            <span class="notification-date">${notif.date}</span>
+async function viewAllNotifications() {
+    try {
+        console.log('🔔 Loading all notifications modal...');
+        
+        // Show loading modal first
+        showGeneralModal('📢 All Notifications', `
+            <div class="loading-message" style="text-align: center; padding: 20px;">
+                <p>Loading notifications...</p>
+            </div>
+        `);
+        
+        // Fetch notifications from API
+        const response = await fetch(apiUrl('/api/notifications/my-notifications'), {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${TokenManager.getToken()}`
+            }
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            console.log('🔔 All notifications API response:', result);
+            
+            if (result.success && result.data.notifications) {
+                const notifications = result.data.notifications;
+                
+                if (notifications.length === 0) {
+                    const emptyHtml = `
+                        <div class="modal-content-container" style="text-align: center; padding: 30px;">
+                            <div style="font-size: 3rem; margin-bottom: 15px;">📭</div>
+                            <h3 style="color: #495057; margin-bottom: 10px;">No Notifications</h3>
+                            <p style="color: #6c757d;">You're all caught up! No new notifications at this time.</p>
                         </div>
+                    `;
+                    showGeneralModal('📢 All Notifications', emptyHtml);
+                    return;
+                }
+                
+                const notificationsHtml = `
+                    <div class="modal-content-container">
+                        <p style="margin-bottom: 1.5rem; color: #7f8c8d;">Your recent notifications:</p>
+                        ${notifications.map(notif => {
+                            const typeClass = `notification-${notif.type}`;
+                            const urgentClass = notif.priority === 'high' ? 'urgent' : '';
+                            const typeIcons = {
+                                'success': '✅',
+                                'warning': '⚠️',
+                                'info': 'ℹ️',
+                                'error': '❌'
+                            };
+                            const icon = typeIcons[notif.type] || 'ℹ️';
+                            
+                            return `
+                                <div class="notification-item ${typeClass} ${urgentClass}">
+                                    <div class="notification-meta">
+                                        <strong style="color: #2c3e50;">${icon} ${notif.title}</strong>
+                                        <div>
+                                            <span class="notification-date">${new Date(notif.date).toLocaleDateString()}</span>
+                                            ${notif.priority === 'high' ? '<span class="urgent-badge">URGENT</span>' : ''}
+                                        </div>
+                                    </div>
+                                    <p style="margin: 0.5rem 0 0 0; color: #555; line-height: 1.4;">${notif.message}</p>
+                                </div>
+                            `;
+                        }).join('')}
                     </div>
-                    <p style="margin: 0.5rem 0; color: #34495e;">${notif.message}</p>
-                </div>
-            `).join('')}
-        </div>
-    `;
+                `;
+                
+                showGeneralModal('📢 All Notifications', notificationsHtml);
+            } else {
+                throw new Error(result.message || 'Failed to load notifications');
+            }
+        } else {
+            throw new Error('Failed to fetch notifications from server');
+        }
+    } catch (error) {
+        console.error('Error loading all notifications:', error);
+        const errorHtml = `
+            <div class="modal-content-container" style="text-align: center; padding: 30px;">
+                <div style="font-size: 3rem; margin-bottom: 15px;">⚠️</div>
+                <h3 style="color: #e53e3e; margin-bottom: 10px;">Connection Error</h3>
+                <p style="color: #c53030; margin-bottom: 20px;">Unable to load notifications from server.</p>
+                <button class="btn btn-primary" onclick="viewAllNotifications()" style="background: #e53e3e; border: 1px solid #e53e3e;">
+                    🔄 Try Again
+                </button>
+            </div>
+        `;
+                showGeneralModal('� All Notifications', errorHtml);
+    }
+}
+
+// Wrapper function for the notification bell icon
+function viewNotifications() {
+    // Call the existing viewAllNotifications function
+    viewAllNotifications();
     
-    showGeneralModal('🔔 All Notifications', notificationsHtml);
+    // Hide the notification badge when notifications are viewed
+    const badge = document.getElementById('notificationBadge');
+    if (badge) {
+        badge.style.display = 'none';
+        badge.textContent = '0';
+    }
+}
+
+// Function to update notification badge count
+function updateNotificationBadge(count = 0) {
+    const badge = document.getElementById('notificationBadge');
+    if (badge) {
+        if (count > 0) {
+            badge.textContent = count > 99 ? '99+' : count.toString();
+            badge.style.display = 'flex';
+        } else {
+            badge.style.display = 'none';
+        }
+    }
 }
 
 function editProfile() {
@@ -591,12 +983,6 @@ function editProfile() {
         document.getElementById('editEmail').value = user.email || '';
         document.getElementById('editPhone').value = user.phone || '';
         document.getElementById('editFullName').value = user.fullName || user.name || '';
-        document.getElementById('editCourse').value = user.course || '';
-        document.getElementById('editYear').value = user.year || '';
-        document.getElementById('editStudentId').value = user.studentId || user.id || '';
-        document.getElementById('editEmergencyName').value = user.emergencyContact?.name || '';
-        document.getElementById('editEmergencyPhone').value = user.emergencyContact?.phone || '';
-        document.getElementById('editEmergencyRelation').value = user.emergencyContact?.relation || '';
     }
     
     // Show the modal
@@ -622,37 +1008,35 @@ function closeEditProfileModal() {
 }
 
 async function handleProfileSubmission(event) {
+    console.log('Profile form submitted!', event);
     event.preventDefault();
     
     const formData = new FormData(event.target);
-    const submitBtn = document.getElementById('saveProfileBtn');
-    const originalText = submitBtn.textContent;
+    // Find the submit button in the modal footer since it's outside the form
+    const submitBtn = document.querySelector('button[form="editProfileForm"]') || 
+                     document.querySelector('#editProfileModal button[type="submit"]');
+    const originalText = submitBtn ? submitBtn.textContent : 'Update Profile';
     
     try {
         // Show loading state
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<span class="spinner"></span>Saving...';
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner"></span>Saving...';
+        }
         
         // Clear previous alerts
         dashClearAlerts();
         
         // Collect form data
         const profileData = {
+            username: formData.get('username'),
             email: formData.get('email'),
             phone: formData.get('phone'),
-            fullName: formData.get('fullName'),
-            course: formData.get('course'),
-            year: formData.get('year'),
-            studentId: formData.get('studentId'),
-            emergencyContact: {
-                name: formData.get('emergencyName'),
-                phone: formData.get('emergencyPhone'),
-                relation: formData.get('emergencyRelation')
-            }
+            fullName: formData.get('fullName')
         };
         
         // Validate required fields
-        if (!profileData.email || !profileData.phone) {
+        if (!profileData.username || !profileData.email || !profileData.phone || !profileData.fullName) {
             // Show error directly in modal without alert
             const errorDiv = document.createElement('div');
             errorDiv.className = 'form-error';
@@ -662,7 +1046,7 @@ async function handleProfileSubmission(event) {
             errorDiv.style.padding = '10px';
             errorDiv.style.borderRadius = '5px';
             errorDiv.style.marginBottom = '15px';
-            errorDiv.textContent = 'Email and phone number are required fields.';
+            errorDiv.textContent = 'All fields are required.';
             
             const form = document.getElementById('editProfileForm');
             const existingError = form.querySelector('.form-error');
@@ -770,14 +1154,31 @@ async function handleProfileSubmission(event) {
         if (existingError) existingError.remove();
         form.insertBefore(errorDiv, form.firstChild);
     } finally {
-        // Reset button
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = originalText;
+        // Reset button safely
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+        }
     }
 }
 
 
 function changePassword() {
+    document.getElementById('changePasswordModal').style.display = 'block';
+    document.body.style.overflow = 'hidden';
+    
+    // Setup form submission handler
+    const passwordForm = document.getElementById('changePasswordForm');
+    if (passwordForm && !passwordForm.hasAttribute('data-handler-added')) {
+        passwordForm.setAttribute('data-handler-added', 'true');
+        passwordForm.addEventListener('submit', handlePasswordSubmission);
+    }
+}
+
+function openChangePasswordModal() {
+    console.log('🔐 openChangePasswordModal function called');
+    
+    // Show the modal
     document.getElementById('changePasswordModal').style.display = 'block';
     document.body.style.overflow = 'hidden';
     
@@ -1285,6 +1686,10 @@ function openAllotmentModal() {
     if (modal) {
         // Pre-fill user information
         prefillUserInfo();
+        
+        // Load hostels from database
+        loadHostelOptions();
+        
         modal.style.display = 'block';
         document.body.style.overflow = 'hidden';
     }
@@ -1306,6 +1711,45 @@ function prefillUserInfo() {
     if (user) {
         document.getElementById('studentId').value = user.id || '';
         document.getElementById('studentName').value = user.name || user.fullName || '';
+    }
+}
+
+// Load hostel options from database
+async function loadHostelOptions() {
+    try {
+        console.log('🏨 Loading hostel options...');
+        const response = await fetch(apiUrl('/api/allotment/hostels'), {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${TokenManager.getToken()}`
+            }
+        });
+
+        if (response.ok) {
+            const hostels = await response.json();
+            const hostelSelect = document.getElementById('hostelPreference');
+            
+            // Clear existing options except the first "Select Hostel" option
+            while (hostelSelect.children.length > 1) {
+                hostelSelect.removeChild(hostelSelect.lastChild);
+            }
+            
+            // Add hostel options
+            hostels.forEach(hostel => {
+                const option = document.createElement('option');
+                option.value = hostel.name; // Use name for now to match current backend logic
+                option.textContent = `${hostel.name} (${hostel.type}) - ${hostel.availableRooms} available rooms`;
+                hostelSelect.appendChild(option);
+            });
+            
+            console.log(`✅ Loaded ${hostels.length} hostel options`);
+        } else {
+            console.error('❌ Failed to load hostels:', response.status);
+            showAlert('Failed to load hostel options', 'error');
+        }
+    } catch (error) {
+        console.error('❌ Error loading hostels:', error);
+        showAlert('Error loading hostel options', 'error');
     }
 }
 
@@ -1422,8 +1866,9 @@ async function handleAllotmentSubmission(event) {
 
 function validateAllotmentForm() {
     const requiredFields = [
-        'studentId', 'studentName', 'course', 'year', 'academicScore', 'phoneNumber',
-        'hostelPreference', 'roomType', 'emergencyName', 'emergencyPhone', 'emergencyRelation'
+        'studentId', 'studentName', 'course', 'yearOfStudy', 'academicScore', 'phoneNumber',
+        'emergencyContactName', 'emergencyContactPhone', 'relationship', 'homeAddress', 
+        'distanceFromHome', 'distanceUnit', 'hostelPreference', 'roomType'
     ];
     
     for (const fieldId of requiredFields) {
@@ -1436,7 +1881,7 @@ function validateAllotmentForm() {
     }
     
     // Validate academic score based on year
-    const year = document.getElementById('year').value;
+    const year = document.getElementById('yearOfStudy').value;
     const academicScore = document.getElementById('academicScore').value.trim();
     
     if (year === '1') {
@@ -1467,7 +1912,7 @@ function validateAllotmentForm() {
     // Validate phone numbers
     const phoneRegex = /^[\+]?[1-9][\d]{9,14}$/;
     const phoneNumber = document.getElementById('phoneNumber').value;
-    const emergencyPhone = document.getElementById('emergencyPhone').value;
+    const emergencyPhone = document.getElementById('emergencyContactPhone').value;
     
     if (!phoneRegex.test(phoneNumber)) {
         showAlert('Please enter a valid phone number.', 'error');
@@ -1477,7 +1922,7 @@ function validateAllotmentForm() {
     
     if (!phoneRegex.test(emergencyPhone)) {
         showAlert('Please enter a valid emergency contact phone number.', 'error');
-        document.getElementById('emergencyPhone').focus();
+        document.getElementById('emergencyContactPhone').focus();
         return false;
     }
     
@@ -1489,19 +1934,21 @@ function collectAllotmentFormData() {
         studentId: document.getElementById('studentId').value.trim(),
         studentName: document.getElementById('studentName').value.trim(),
         course: document.getElementById('course').value.trim(),
-        year: document.getElementById('year').value,
+        yearOfStudy: document.getElementById('yearOfStudy').value,
         academicScore: document.getElementById('academicScore').value.trim(),
         phoneNumber: document.getElementById('phoneNumber').value.trim(),
+        emergencyContactName: document.getElementById('emergencyContactName').value.trim(),
+        emergencyContactPhone: document.getElementById('emergencyContactPhone').value.trim(),
+        relationship: document.getElementById('relationship').value,
+        homeAddress: document.getElementById('homeAddress').value.trim(),
+        distanceFromHome: parseFloat(document.getElementById('distanceFromHome').value),
+        distanceUnit: document.getElementById('distanceUnit').value,
+        medicalInfo: document.getElementById('medicalInfo').value.trim() || null,
+        specialRequests: document.getElementById('specialRequests').value.trim() || null,
         hostelPreference: document.getElementById('hostelPreference').value,
         roomType: document.getElementById('roomType').value,
         floorPreference: document.getElementById('floorPreference').value || null,
-        specialRequirements: document.getElementById('specialRequirements').value || null,
-        additionalNotes: document.getElementById('additionalNotes').value.trim() || null,
-        emergencyContact: {
-            name: document.getElementById('emergencyName').value.trim(),
-            phone: document.getElementById('emergencyPhone').value.trim(),
-            relation: document.getElementById('emergencyRelation').value
-        }
+        additionalNotes: document.getElementById('additionalNotes').value.trim() || null
     };
 }
 
@@ -1619,7 +2066,7 @@ function updateAllotmentDisplay(allotmentData) {
 
 // Toggle academic field based on year selection
 function toggleAcademicField() {
-    const yearSelect = document.getElementById('year');
+    const yearSelect = document.getElementById('yearOfStudy');
     const academicScoreLabel = document.getElementById('academicScoreLabel');
     const academicScoreInput = document.getElementById('academicScore');
     const academicScoreHelp = document.getElementById('academicScoreHelp');

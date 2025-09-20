@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete Student Profile - Hostel Management System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="static/css/auth.css">
+    <style>
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        .form-group-full {
+            grid-column: 1 / -1;
+        }
+        .info-box {
+            background: #e8f4f8;
+            border: 1px solid #bee5eb;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .info-box h4 {
+            margin: 0 0 0.5rem 0;
+            color: #0c5460;
+        }
+        .info-box p {
+            margin: 0;
+            color: #0c5460;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <h1>Complete Your Student Profile</h1>
+            <p>Please provide your academic details to access hostel services</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="card">
+            <div class="info-box">
+                <h4>📚 Complete Your Student Profile</h4>
+                <p>To access hostel allotment and other services, please complete your student profile with your academic information.</p>
+            </div>
+
+            <form id="studentProfileForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="name">Full Name *</label>
+                        <input 
+                            type="text" 
+                            id="name" 
+                            name="name" 
+                            class="form-control" 
+                            placeholder="Enter your full name"
+                            required
+                        >
+                    </div>
+                    <div class="form-group">
+                        <label for="regNo">Registration Number *</label>
+                        <input 
+                            type="text" 
+                            id="regNo" 
+                            name="regNo" 
+                            class="form-control" 
+                            placeholder="e.g., 2024CSE001"
+                            required
+                        >
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="yearOfStudy">Year of Study *</label>
+                        <select id="yearOfStudy" name="yearOfStudy" class="form-control" required onchange="togglePerformanceField()">
+                            <option value="">Select Year</option>
+                            <option value="1">1st Year</option>
+                            <option value="2">2nd Year</option>
+                            <option value="3">3rd Year</option>
+                            <option value="4">4th Year</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="department">Department</label>
+                        <input 
+                            type="text" 
+                            id="department" 
+                            name="department" 
+                            class="form-control" 
+                            placeholder="e.g., Computer Science"
+                        >
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="category">Category</label>
+                        <select id="category" name="category" class="form-control">
+                            <option value="">Select Category</option>
+                            <option value="General">General</option>
+                            <option value="OBC">OBC</option>
+                            <option value="SC">SC</option>
+                            <option value="ST">ST</option>
+                            <option value="EWS">EWS</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="distanceCategory">Distance Category</label>
+                        <select id="distanceCategory" name="distanceCategory" class="form-control">
+                            <option value="">Select Distance Category</option>
+                            <option value="<25km">Less than 25 km</option>
+                            <option value="25-50km">25-50 km</option>
+                            <option value=">50km">More than 50 km</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Academic Performance Section -->
+                <div id="performanceSection">
+                    <div class="form-row" id="firstYearSection" style="display: none;">
+                        <div class="form-group">
+                            <label for="keamRank">KEAM Rank</label>
+                            <input 
+                                type="number" 
+                                id="keamRank" 
+                                name="keamRank" 
+                                class="form-control" 
+                                placeholder="Enter your KEAM rank"
+                                min="1"
+                            >
+                        </div>
+                        <div class="form-group">
+                            <!-- Empty for grid layout -->
+                        </div>
+                    </div>
+
+                    <div class="form-row" id="higherYearSection" style="display: none;">
+                        <div class="form-group">
+                            <label for="sgpa">SGPA/CGPA</label>
+                            <input 
+                                type="number" 
+                                id="sgpa" 
+                                name="sgpa" 
+                                class="form-control" 
+                                placeholder="Enter your SGPA/CGPA"
+                                min="0"
+                                max="10"
+                                step="0.01"
+                            >
+                        </div>
+                        <div class="form-group">
+                            <label for="backlogs">Number of Backlogs</label>
+                            <input 
+                                type="number" 
+                                id="backlogs" 
+                                name="backlogs" 
+                                class="form-control" 
+                                placeholder="0"
+                                min="0"
+                                value="0"
+                            >
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" id="submitBtn" class="btn btn-primary">
+                    Complete Profile
+                </button>
+            </form>
+
+            <div class="text-center" style="margin-top: 1.5rem;">
+                <p>Need help? <a href="mailto:support@hostel.edu">Contact Support</a></p>
+            </div>
+        </div>
+
+        <!-- Information Card -->
+        <div class="card">
+            <h3>Why This Information?</h3>
+            <div class="role-info">
+                <p><strong>Registration Number:</strong> Used for official identification and room allotment.</p>
+                <p><strong>Academic Performance:</strong> KEAM rank (for 1st years) or SGPA/CGPA helps in allotment priority.</p>
+                <p><strong>Category & Distance:</strong> Used for applying reservation policies and allotment preferences.</p>
+                <p><strong>Department:</strong> Helps in grouping students and hostel allocation planning.</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="static/js/auth.js"></script>
+    <script>
+        // Ensure API calls work when page is opened via file:// by prefixing localhost
+        const API_ORIGIN = (typeof window !== 'undefined' && window.location && window.location.protocol === 'file:')
+            ? 'http://localhost:3000'
+            : '';
+        const apiUrl = (path) => `${API_ORIGIN}${path}`;
+        
+        // Check if user is logged in
+        if (!TokenManager.getToken()) {
+            window.location.href = 'login.html';
+        }
+
+        // Toggle performance fields based on year
+        function togglePerformanceField() {
+            const year = document.getElementById('yearOfStudy').value;
+            const firstYearSection = document.getElementById('firstYearSection');
+            const higherYearSection = document.getElementById('higherYearSection');
+
+            if (year === '1') {
+                firstYearSection.style.display = 'grid';
+                higherYearSection.style.display = 'none';
+            } else if (year) {
+                firstYearSection.style.display = 'none';
+                higherYearSection.style.display = 'grid';
+            } else {
+                firstYearSection.style.display = 'none';
+                higherYearSection.style.display = 'none';
+            }
+        }
+
+        // Handle form submission
+        document.getElementById('studentProfileForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const submitBtn = document.getElementById('submitBtn');
+            const originalText = submitBtn.textContent;
+            
+            try {
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Creating Profile...';
+                
+                const formData = new FormData(this);
+                const data = Object.fromEntries(formData.entries());
+                
+                // Convert numeric fields
+                if (data.yearOfStudy) data.yearOfStudy = parseInt(data.yearOfStudy);
+                if (data.keamRank) data.keamRank = parseInt(data.keamRank);
+                if (data.sgpa) data.sgpa = parseFloat(data.sgpa);
+                if (data.backlogs) data.backlogs = parseInt(data.backlogs);
+                
+                const response = await fetch(apiUrl('/api/auth/student-profile'), {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${TokenManager.getToken()}`
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    alert('✅ Student profile created successfully! Redirecting to dashboard...');
+                    window.location.href = 'student-dashboard.html';
+                } else {
+                    alert('❌ Error: ' + result.message);
+                }
+                
+            } catch (error) {
+                console.error('Error:', error);
+                alert('❌ Network error. Please try again.');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
+            }
+        });
+    </script>
+</body>
+</html>

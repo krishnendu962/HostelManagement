@@ -16,8 +16,16 @@
                     <h1 style="margin: 0; font-size: 2.5rem;">Student Dashboard</h1>
                     <p style="margin: 0.5rem 0 0 0;">Welcome to your hostel management portal</p>
                 </div>
-                <div style="display: flex; gap: 1rem;">
+                <div style="display: flex; gap: 1rem; align-items: center;">
+                    <button class="btn btn-icon" onclick="viewNotifications()" title="View Notifications">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                        </svg>
+                        <span class="notification-badge" id="notificationBadge" style="display: none;">0</span>
+                    </button>
                     <button class="btn btn-primary" onclick="editProfile()">Edit Profile</button>
+                    <button class="btn btn-secondary" onclick="openChangePasswordModal()">Change Password</button>
                     <button class="btn btn-outline" onclick="logout()">Logout</button>
                 </div>
             </div>
@@ -72,7 +80,9 @@
                 <div id="roomInfo">
                     <!-- Room information will be populated here -->
                 </div>
-                <button class="btn btn-primary" onclick="openAllotmentModal()" id="allotmentBtn">Apply for Allotment</button>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="viewRoomDetails()">View Room Details</button>
+                </div>
             </div>
 
             <!-- Maintenance Requests Card -->
@@ -118,11 +128,11 @@
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="studentId" class="form-label">Student ID *</label>
-                                <input type="text" id="studentId" name="studentId" class="form-input" readonly>
+                                <input type="text" id="studentId" name="studentId" class="form-input" required placeholder="Enter your student ID">
                             </div>
                             <div class="form-group">
                                 <label for="studentName" class="form-label">Full Name *</label>
-                                <input type="text" id="studentName" name="studentName" class="form-input" readonly>
+                                <input type="text" id="studentName" name="studentName" class="form-input" required placeholder="Enter your full name">
                             </div>
                         </div>
                         <div class="form-row">
@@ -185,6 +195,46 @@
                     </div>
 
                     <div class="form-section">
+                        <h4>Address & Distance Information</h4>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="homeAddress" class="form-label">Home Address *</label>
+                                <textarea id="homeAddress" name="homeAddress" class="form-textarea" required placeholder="Enter your complete home address"></textarea>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="distanceFromHome" class="form-label">Distance from Home *</label>
+                                <input type="number" id="distanceFromHome" name="distanceFromHome" class="form-input" required placeholder="Enter distance" min="0" step="0.1">
+                            </div>
+                            <div class="form-group">
+                                <label for="distanceUnit" class="form-label">Distance Unit *</label>
+                                <select id="distanceUnit" name="distanceUnit" class="form-select" required>
+                                    <option value="">Select Unit</option>
+                                    <option value="km">Kilometers</option>
+                                    <option value="miles">Miles</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h4>Medical & Special Information</h4>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="medicalInfo" class="form-label">Medical Information</label>
+                                <textarea id="medicalInfo" name="medicalInfo" class="form-textarea" placeholder="Any medical conditions, allergies, or health concerns that the hostel should be aware of"></textarea>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="specialRequests" class="form-label">Special Requests</label>
+                                <textarea id="specialRequests" name="specialRequests" class="form-textarea" placeholder="Any special accommodation requests or preferences"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
                         <h4>Accommodation Preferences</h4>
                         <div class="form-row">
                             <div class="form-group">
@@ -220,13 +270,7 @@
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label for="specialRequirements" class="form-label">Special Requirements</label>
-                                <select id="specialRequirements" name="specialRequirements" class="form-select">
-                                    <option value="">None</option>
-                                    <option value="medical">Medical Needs</option>
-                                    <option value="accessibility">Accessibility</option>
-                                    <option value="dietary">Dietary Requirements</option>
-                                </select>
+                                <!-- Empty to maintain grid layout -->
                             </div>
                         </div>
                         <div class="form-group">
@@ -245,7 +289,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline" onclick="closeAllotmentModal()">Cancel</button>
-                <button type="submit" class="btn btn-primary" form="allotmentForm">Submit Application</button>
+                <button type="submit" id="submitAllotmentBtn" class="btn btn-primary" form="allotmentForm">Submit Application</button>
             </div>
         </div>
     </div>
@@ -282,47 +326,6 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline" onclick="closeRoomDetailsModal()">Close</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Edit Profile Modal -->
-    <div id="editProfileModal" class="modal" style="display: none;">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>✏️ Edit Profile</h3>
-                <span class="close" onclick="closeEditProfileModal()">&times;</span>
-            </div>
-            <div class="modal-body">
-                <form id="editProfileForm">
-                    <div class="form-section">
-                        <h4>Personal Information</h4>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="editUsername" class="form-label">Username *</label>
-                                <input type="text" id="editUsername" name="username" class="form-input" readonly>
-                            </div>
-                            <div class="form-group">
-                                <label for="editEmail" class="form-label">Email *</label>
-                                <input type="email" id="editEmail" name="email" class="form-input" required>
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="editPhone" class="form-label">Phone Number *</label>
-                                <input type="tel" id="editPhone" name="phone" class="form-input" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="editFullName" class="form-label">Full Name</label>
-                                <input type="text" id="editFullName" name="fullName" class="form-input">
-                            </div>
-                        </div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-outline" onclick="closeEditProfileModal()">Cancel</button>
-                <button type="submit" class="btn btn-primary" form="editProfileForm">Save Changes</button>
             </div>
         </div>
     </div>
@@ -388,7 +391,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline" onclick="closePasswordModal()">Cancel</button>
-                <button type="submit" class="btn btn-primary" form="changePasswordForm">Change Password</button>
+                <button type="submit" class="btn btn-primary" id="changePasswordBtn" form="changePasswordForm">Change Password</button>
             </div>
         </div>
     </div>
@@ -412,7 +415,7 @@
     </div>
 
     <!-- Edit Profile Modal -->
-    <div id="editProfileModal" class="modal">
+    <div id="editProfileModal" class="modal" style="display: none;">
         <div class="modal-content">
             <div class="modal-header">
                 <h3>✏️ Edit Profile</h3>
@@ -426,54 +429,18 @@
                             <input type="text" id="editUsername" name="username" class="form-input" required>
                         </div>
                         <div class="form-group">
-                            <label for="editEmail" class="form-label">Email *</label>
-                            <input type="email" id="editEmail" name="email" class="form-input" required>
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="editPhone" class="form-label">Phone *</label>
-                            <input type="tel" id="editPhone" name="phone" class="form-input" required>
-                        </div>
-                        <div class="form-group">
                             <label for="editFullName" class="form-label">Full Name *</label>
                             <input type="text" id="editFullName" name="fullName" class="form-input" required>
                         </div>
                     </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="editCourse" class="form-label">Course *</label>
-                            <input type="text" id="editCourse" name="course" class="form-input" required>
+                            <label for="editEmail" class="form-label">Email *</label>
+                            <input type="email" id="editEmail" name="email" class="form-input" required>
                         </div>
                         <div class="form-group">
-                            <label for="editYear" class="form-label">Year of Study *</label>
-                            <select id="editYear" name="year" class="form-input" required>
-                                <option value="">Select Year</option>
-                                <option value="1">1st Year</option>
-                                <option value="2">2nd Year</option>
-                                <option value="3">3rd Year</option>
-                                <option value="4">4th Year</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="editStudentId" class="form-label">Student ID *</label>
-                            <input type="text" id="editStudentId" name="studentId" class="form-input" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="editEmergencyName" class="form-label">Emergency Contact Name</label>
-                            <input type="text" id="editEmergencyName" name="emergencyName" class="form-input">
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="editEmergencyPhone" class="form-label">Emergency Contact Phone</label>
-                            <input type="tel" id="editEmergencyPhone" name="emergencyPhone" class="form-input">
-                        </div>
-                        <div class="form-group">
-                            <label for="editEmergencyRelation" class="form-label">Emergency Contact Relation</label>
-                            <input type="text" id="editEmergencyRelation" name="emergencyRelation" class="form-input">
+                            <label for="editPhone" class="form-label">Phone Number *</label>
+                            <input type="tel" id="editPhone" name="phone" class="form-input" required>
                         </div>
                     </div>
                 </form>
