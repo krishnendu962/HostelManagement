@@ -6,6 +6,8 @@ const RoomModel = require('./RoomModel');
 const RoomAllotmentModel = require('./RoomAllotmentModel');
 const MaintenanceRequestModel = require('./MaintenanceRequestModel');
 const NotificationModel = require('./NotificationModel');
+const AllotmentApplicationModel = require('./AllotmentApplicationModel');
+const WardenModel = require('./WardenModel');
 
 module.exports = {
   UserModel,
@@ -13,6 +15,9 @@ module.exports = {
   HostelModel,
   RoomModel,
   RoomAllotmentModel,
+  AllotmentApplicationModel,
   MaintenanceRequestModel,
   NotificationModel
+  ,
+  WardenModel
 };
